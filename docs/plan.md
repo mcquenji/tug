@@ -370,16 +370,7 @@ environments:
       api: https://api.staging.notes.example.com
 ```
 
-The schema should reject:
-
-```text
-unknown top-level properties
-unknown environment properties
-invalid environment names
-invalid domain values
-invalid database types
-invalid version types
-```
+The schema rejects unknown properties and invalid value types. Semantic validation additionally rejects invalid environment names, domains, database engines and unsupported PostgreSQL versions before provisioning.
 
 The schema should allow future manifest versions to be introduced explicitly rather than silently changing the meaning of existing fields.
 
@@ -499,7 +490,7 @@ environments:
 
 `domains.*: auto` uses the domain template for the environment from the active context.
 
-The manifest must never contain actual secret values.
+Prefer secret references in the manifest. Sensitive local overrides are allowed and produce a warning on stderr; do not commit those values.
 
 `coolify.yaml` is **our schema**, not a native Coolify configuration format.
 
@@ -524,6 +515,7 @@ branch
 domains
 env
 secrets
+configMode
 database.name
 database.user
 redis settings
@@ -568,7 +560,7 @@ Precedence during provisioning is:
 
 Reserved password aliases for `database`, `redis` and `serviceSecret` are recognized and removed or ignored so they cannot override Tug's dedicated infrastructure variables indirectly. Secrets are uploaded as literal runtime-only values (`is_runtime=true`, `is_buildtime=false`, `is_literal=true`). Only variable names appear in plans and import progress output.
 
-`TUG_IMPORT_V1` records imported key names, source mode and completion in Coolify. A pending marker precedes the bulk upload so interrupted imports can resume without losing key ownership. Completion follows successful verification. No secret values are stored in markers or the local cache. `TUG_MANAGED_V1` tracks explicit manifest variable ownership separately; `TUG_DEPLOYMENT_PENDING` preserves deployment intent across interruptions.
+`TUG_IMPORT_V1` records imported key names, source mode and completion in Coolify. A pending marker precedes the bulk upload so interrupted imports can resume without losing key ownership. Completion follows successful verification. No secret values are stored in markers or the local cache. `TUG_MANAGED_V1` tracks explicit manifest variable ownership separately; `TUG_DEPLOYMENT_PENDING` preserves deployment intent across interruptions. `TUG_DEPLOYMENT_BASELINE` identifies the preceding deployment, allowing an accepted request to be rediscovered without queuing a duplicate, including with `--no-wait`.
 
 Normal `apply` preserves completed imports. Missing local files on another machine do not remove imported values or block an unchanged reconciliation. Updating a local source does not silently rotate a deployed secret.
 
@@ -730,7 +722,7 @@ GitHub App
 domain templates per environment
 ```
 
-Must verify API access before saving.
+Validate and save the explicitly selected credential destination without a network request. `doctor` verifies API access after configuration.
 
 ### `tug init`
 
@@ -845,7 +837,7 @@ No changes.
 
 ### `tug environment add`
 
-Add a new environment to the manifest interactively:
+Add a new environment to the manifest, using options for branch, domains and import mode:
 
 ```bash
 tug environment add staging
@@ -867,7 +859,7 @@ This must refuse to delete databases or persistent volumes without:
 tug environment destroy staging --destroy-data
 ```
 
-The command should also offer to remove the environment from `coolify.yaml`, but must not do so silently.
+The declaration remains in `coolify.yaml`. Remove it explicitly after destroying an environment if future applies should not recreate it.
 
 ### `tug status`
 
@@ -1062,13 +1054,19 @@ which makes new projects require zero DNS work. Coolify itself supports wildcard
 Domain templates may use environment placeholders:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/mcquenji/tug/main/schemas/v1/config.schema.json
-domains:
-  web: https://{environment}.{name}.apps.example.com
-  api: https://api.{environment}.{name}.apps.example.com
+# Domain-template fragment inside a configured context.
+contexts:
+  home:
+    domains:
+      production:
+        web: '{name}.apps.example.com'
+        api: 'api.{name}.apps.example.com'
+      default:
+        web: '{environment}.{name}.apps.example.com'
+        api: 'api.{environment}.{name}.apps.example.com'
 ```
 
-For production, `{environment}` may be omitted or rendered as an empty string according to the context configuration.
+Use a production-specific template to omit the environment prefix. Otherwise `{environment}` is replaced with the declared environment name.
 
 `tug` must reject duplicate domains across all environments before creating or updating any application.
 
@@ -1100,12 +1098,12 @@ Multi-instance migration coordination is outside the MVP.
 
 Rules:
 
-1. Never store secret values in `coolify.yaml`.
+1. Prefer global credentials and local secret references. Warn when users deliberately store sensitive overrides in `coolify.yaml`.
 2. Never store them in hosted or bundled schemas.
 3. Never store them in `.coolify/state.json`.
 4. Never print them during normal output.
 5. Never pass them through command-line arguments where they may appear in shell history.
-6. Read user secrets from environment variables.
+6. Import native password files once per environment, or resolve explicit secret references from environment variables.
 7. Generate internal secrets with a cryptographically secure random generator.
 8. Store runtime secrets in Coolify environment variables.
 9. Redact sensitive API bodies from debug logging.
@@ -1206,52 +1204,21 @@ easy process/Git inspection
 easy reuse of Serverpod conventions
 ```
 
-Keep dependencies small:
+Use the neighboring Grumpy packages consistently: `grumpy_cli` for commands, modules, dependency injection and default configuration; `grumpy_io` for transport; `grumpy_gen` for configuration artifacts; and `grumpy_lints` for architecture checks. Local overrides include the shared Grumpy core and annotations.
+
+Implementation layout:
 
 ```text
-args
-http
-yaml
-path
-crypto / secure randomness
+lib/src/
+├── cli/          # commands, modules and sanitized terminal output
+├── coolify/      # API service, response datasource and typed remote models
+├── reconcile/    # deployment specification, ownership and reconciliation
+├── serverpod/    # native runtime-configuration import datasource
+├── shared/       # generated config, offline schemas and common utilities
+└── workspace/    # layout validation, build generation and ID cache
 ```
 
-No framework is necessary.
-
-Suggested internal structure:
-
-```text
-lib/
-├── cli/
-│   ├── init.dart
-│   ├── plan.dart
-│   ├── apply.dart
-│   ├── environment.dart
-│   └── doctor.dart
-│
-├── manifest/
-│   ├── manifest.dart
-│   ├── parser.dart
-│   ├── schema.dart
-│   └── validator.dart
-│
-├── coolify/
-│   ├── client.dart
-│   ├── projects.dart
-│   ├── environments.dart
-│   ├── applications.dart
-│   ├── databases.dart
-│   └── deployments.dart
-│
-├── planner/
-│   ├── desired_state.dart
-│   ├── actual_state.dart
-│   └── plan.dart
-│
-└── generator/
-    ├── dockerfile.dart
-    └── yaml_header.dart
-```
+Each feature separates domain contracts/models from infrastructure implementations. `bin/tug.dart` starts the Grumpy CLI app.
 
 ## 23. MVP scope
 
@@ -1316,7 +1283,7 @@ Afterward:
 ✓ project exists
 ✓ no schema file was copied into the application repository
 ✓ every Tug-managed YAML file links to its corresponding Tug-hosted schema
-✓ hosted schema URLs resolve to published schemas
+✓ bundled schemas work offline; hosted URLs become public when Tug is published
 ✓ coolify.yaml validates against the bundled manifest schema offline
 ✓ production environment exists
 ✓ PostgreSQL is running
@@ -1327,7 +1294,7 @@ Afterward:
 ✓ API is reachable
 ✓ Flutter receives correct API URL
 ✓ HTTPS works
-✓ no secrets exist in Git
+✓ no imported runtime secrets or native password files were staged or committed by Tug
 ```
 
 Adding staging should work with:
