@@ -1204,7 +1204,7 @@ easy process/Git inspection
 easy reuse of Serverpod conventions
 ```
 
-Use the neighboring Grumpy packages consistently: `grumpy_cli` for commands, modules, dependency injection and default configuration; `grumpy_io` for transport; `grumpy_gen` for configuration artifacts; and `grumpy_lints` for architecture checks. Local overrides include the shared Grumpy core and annotations.
+Use the Grumpy Git dependencies consistently: `grumpy_cli` for commands, modules, dependency injection and default configuration; `grumpy_io` for transport; `grumpy_gen` for configuration artifacts; and `grumpy_lints` for architecture checks. Packages resolve from their `mcquenji` GitHub repositories, including transitive Grumpy core and annotations. The lockfile records their resolved revisions, and the analyzer plugin also uses Git. No sibling checkouts or local dependency overrides are required.
 
 Implementation layout:
 

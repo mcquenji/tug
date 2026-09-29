@@ -4,7 +4,7 @@ Tug provisions Serverpod 4 monorepos on Coolify: one application and private Pos
 
 ## Build and run
 
-Keep `grumpy`, `grumpy_annotations`, `grumpy_cli`, `grumpy_io`, `grumpy_gen`, and `grumpy_lints` beside this repository. Tug uses the local package overrides in `pubspec.yaml`.
+Tug resolves the Grumpy packages from their `mcquenji` GitHub repositories. The committed `pubspec.lock` pins their resolved revisions; sibling checkouts and local dependency overrides are not required.
 
 ```sh
 fvm dart pub get

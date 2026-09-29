@@ -7,6 +7,7 @@ Validated on 2026-09-29 with Flutter 3.47.5, Dart 3.13.4 and a fresh Serverpod 4
 - Static analysis with fatal infos, all 32 automated tests, generated-artifact freshness and native executable compilation passed.
 - After the EduPlanner-style module refactor, CLI integration tests verified independent command-group routing, global context writes across app lifecycles, local initialization/environment writes and unchanged generation. Configuration and reconciliation regression tests still passed.
 - Grumpy's standard configuration precedence, whole-map replacement, scoped persistence and schema references.
+- All six Grumpy packages resolved from their Git repositories with no path overrides. Analysis (including the Git-loaded lint plugin), all tests, generated-artifact freshness and native compilation passed against the locked Git revisions.
 - Local sensitive-field warnings, including inactive contexts, without values in output.
 - Offline validation against the embedded canonical scoped schemas.
 - Native Serverpod field mapping, password section precedence, case-sensitive custom passwords, reserved aliases and unsupported-field redaction.
