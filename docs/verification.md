@@ -16,14 +16,15 @@ Validated on 2026-09-29 with Flutter 3.47.5, Dart 3.13.4 and a fresh Serverpod 4
 - The local smoke-test containers, named/anonymous volumes, network and tagged image were removed.
 - Both EduPlanner repositories were inspected only for unsupported-layout diagnostics; their existing files and edits were preserved.
 - Both requested test domains resolved in DNS. DNS was not modified.
+- The implementation was published as `main` and made the default branch, with the repository remaining private. The temporary `codex/tug-smoke-20260929` fixture branch and all remaining task-created validation scratch files were removed.
 
 ## Release gate still pending
 
-Live Coolify provisioning and HTTPS validation have not run. The prior automatic approval review rejected sending `COOLIFY_API_TOKEN` to a discovered URL without explicit destination authorization. A disposable context now explicitly names the destination and stores only the token's environment-variable name; the user's authorization question is pending. No live Coolify resources have been created.
+Live Coolify provisioning and HTTPS validation have not run. The prior automatic approval review rejected sending `COOLIFY_API_TOKEN` to a discovered URL without explicit destination authorization. A disposable context was configured with the destination and only the token's environment-variable name, then removed with the validation scratch files. The user's API-destination authorization question is pending. No live Coolify resources have been created.
 
 The remaining live check uses the Projects server, `test.mcquenji.dev` and `api-test.mcquenji.dev`, with MCP discovery/monitoring and Tug REST provisioning. It must verify internal database connectivity, HTTPS, migrations, Redis, Flutter/API connectivity, import persistence, idempotency and cache recovery, then remove all test resources and volumes.
 
-The temporary GitHub fixture branch became the repository's default branch because the repository was initially empty. It must be replaced as the default before GitHub will permit its deletion. All fixture runtime configuration and passwords remained uncommitted.
+The live fixture can be recreated after authorization. All fixture runtime configuration and passwords remained uncommitted.
 
 ## Repeatable local checks
 
