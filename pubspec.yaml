@@ -1,0 +1,36 @@
+name: tug
+description: Bootstrap and reconcile Serverpod deployments on Coolify.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.13.0
+executables:
+  tug:
+dependencies:
+  grumpy_cli:
+    path: ../grumpy_cli
+  grumpy_io:
+    path: ../grumpy_io
+  dio: ^5.9.1
+  path: ^1.9.1
+  yaml: ^3.1.3
+  yaml_edit: ^2.2.4
+  crypto: ^3.0.7
+  json_schema: ^5.2.2
+dev_dependencies:
+  grumpy_gen:
+    path: ../grumpy_gen
+  grumpy_lints:
+    path: ../grumpy_lints
+  build_runner: ^2.11.1
+  lints: ^6.0.0
+  test: ^1.25.6
+dependency_overrides:
+  grumpy:
+    path: ../grumpy
+  grumpy_annotations:
+    path: ../grumpy_annotations
+  grumpy_io:
+    path: ../grumpy_io
+  grumpy_cli:
+    path: ../grumpy_cli

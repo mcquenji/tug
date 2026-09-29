@@ -1,0 +1,7 @@
+.dart_tool/
+.fvm/
+build/
+coverage/
+*.log
+.coolify/state.json
+.env

@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      grumpy_gen:grumpy_config:
+        options:
+          schema_output: schemas/v1/config.schema.json
+          docs_output: docs/configuration.md
+          schema_uri: https://raw.githubusercontent.com/mcquenji/tug/main/schemas/v1/config.schema.json
