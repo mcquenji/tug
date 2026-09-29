@@ -1,16 +1,10 @@
 import 'dart:convert';
-
-import '../../../shared/utils/repository.dart';
-
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/workspace/domain/domain.dart';
 import 'package:yaml/yaml.dart';
-
-import '../../../shared/domain/models/app_config.g.dart';
-import '../../../shared/domain/models/tug_exception.dart';
-import '../../domain/models/project_layout.dart';
-import '../../domain/services/workspace_service.dart';
 
 class NativeWorkspaceService extends WorkspaceService {
   NativeWorkspaceService() : super.internal();

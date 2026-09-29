@@ -3,21 +3,11 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:grumpy_cli/grumpy_cli.dart';
 import 'package:path/path.dart' as p;
-
-import '../../../coolify/domain/datasources/coolify_datasource.dart';
-import '../../../coolify/domain/models/connection_info.dart';
-import '../../../coolify/domain/models/coolify_operation.dart';
-import '../../../coolify/domain/models/remote_resource.dart';
-import '../../../coolify/domain/models/remote_variable.dart';
-import '../../../serverpod/domain/datasources/serverpod_config_datasource.dart';
-import '../../../shared/domain/models/environment_config.dart';
-import '../../../shared/domain/models/tug_exception.dart';
-import '../../../shared/utils/security.dart';
-import '../../../workspace/domain/services/workspace_service.dart';
-import '../../../shared/utils/repository.dart';
-import '../../domain/models/deployment_spec.dart';
-import '../../domain/models/environment_snapshot.dart';
-import '../../domain/services/reconcile_service.dart';
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/coolify/coolify.dart';
+import 'package:tug/src/reconcile/domain/domain.dart';
+import 'package:tug/src/serverpod/serverpod.dart';
+import 'package:tug/src/workspace/workspace.dart';
 
 /// Reconciles typed resources. It has no knowledge of HTTP or Coolify JSON fields.
 class DefaultReconcileService extends ReconcileService {

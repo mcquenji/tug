@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:tug/src/serverpod/infra/datasources/native_serverpod_config_datasource.dart';
-import 'package:tug/src/shared/domain/models/tug_exception.dart';
-import 'package:tug/src/shared/utils/security.dart';
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/serverpod/infra/infra.dart';
 
 void main() {
   late Directory temp;

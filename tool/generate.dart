@@ -5,12 +5,12 @@ import 'dart:io';
 Future<void> main(List<String> args) async {
   final check = args.contains('--check');
   const generated = [
-    'lib/src/shared/domain/models/app_config.g.dart',
+    'lib/src/app/domain/models/app_config.g.dart',
     'schemas/v1/config.schema.json',
     'schemas/v1/coolify.schema.json',
     'schemas/v1/global.schema.json',
     'schemas/v1/local.schema.json',
-    'lib/src/shared/generated/schemas.g.dart',
+    'lib/gen/schemas.g.dart',
     'docs/configuration.md',
   ];
   final before = {
@@ -44,14 +44,14 @@ Future<void> main(List<String> args) async {
       '${const JsonEncoder.withIndent('  ').convert(wrapper)}\n',
     );
   }
-  final embedded = File('lib/src/shared/generated/schemas.g.dart');
+  final embedded = File('lib/gen/schemas.g.dart');
   embedded.parent.createSync(recursive: true);
   embedded.writeAsStringSync(
     '// GENERATED CODE - DO NOT MODIFY BY HAND.\nconst String configSchemaJson = ${jsonEncode(jsonEncode(canonical)).replaceAll(r'$', r'\$')};\n',
   );
   await run([
     'format',
-    'lib/src/shared/domain/models/app_config.g.dart',
+    'lib/src/app/domain/models/app_config.g.dart',
     embedded.path,
   ]);
   if (check) {

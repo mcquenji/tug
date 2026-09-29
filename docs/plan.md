@@ -1209,16 +1209,22 @@ Use the neighboring Grumpy packages consistently: `grumpy_cli` for commands, mod
 Implementation layout:
 
 ```text
-lib/src/
-├── cli/          # commands, modules and sanitized terminal output
-├── coolify/      # API service, response datasource and typed remote models
-├── reconcile/    # deployment specification, ownership and reconciliation
-├── serverpod/    # native runtime-configuration import datasource
-├── shared/       # generated config, offline schemas and common utilities
-└── workspace/    # layout validation, build generation and ID cache
+lib/
+├── gen/                # embedded canonical schemas
+└── src/
+    ├── app/            # root App, configuration models and common command preflight
+    ├── configuration/  # explicit runtime-configuration synchronization
+    ├── context/        # global Coolify context commands and selection
+    ├── coolify/        # API service, response datasource and typed remote models
+    ├── environment/    # named environment commands
+    ├── reconcile/      # deployment commands, ownership and reconciliation
+    ├── serverpod/      # native runtime-configuration import datasource
+    └── workspace/      # initialization, generation, layout validation and ID cache
 ```
 
-Each feature separates domain contracts/models from infrastructure implementations. `bin/tug.dart` starts the Grumpy CLI app.
+Follow EduPlanner's feature-module structure. Each feature has a root `<feature>.dart` module that declares its dependencies, binds its own services/datasources, and exposes its routes. Domain, infrastructure, presentation and utility directories expose barrel files, including type-specific barrels such as `models/models.dart` and `commands/commands.dart`. Cross-feature imports use the feature entry points; infrastructure remains an explicit internal import.
+
+Commands live in their owning feature's `presentation/commands`, one command per class and file. `TugCommand` supplies shared configuration preflight and `DeploymentCommand` resolves a deployment specification. The root `App` composes modules instead of dispatching action strings. `bin/tug.dart` starts it. Grumpy generates `app/domain/models/app_config.g.dart`; its default configuration services and scope resolution remain unchanged.
 
 ## 23. MVP scope
 

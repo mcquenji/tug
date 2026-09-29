@@ -3,11 +3,8 @@ import 'dart:io' show HttpDate;
 
 import 'package:grumpy_cli/grumpy_cli.dart';
 import 'package:grumpy_io/grumpy_io.dart';
-
-import '../../../shared/domain/models/coolify_context.dart';
-import '../../../shared/domain/models/tug_exception.dart';
-import '../../domain/models/coolify_operation.dart';
-import '../../domain/services/coolify_api_service.dart';
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/coolify/domain/domain.dart';
 
 /// Coolify v4 REST mapping with bounded reads and no blind mutation retries.
 class RestCoolifyApiService extends CoolifyApiService {

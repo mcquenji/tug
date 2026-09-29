@@ -1,15 +1,8 @@
 import 'dart:convert';
 
 import 'package:grumpy_io/grumpy_io.dart';
-
-import '../../../shared/domain/models/tug_exception.dart';
-import '../../domain/datasources/coolify_datasource.dart';
-import '../../domain/services/coolify_api_service.dart';
-import '../../domain/models/connection_info.dart';
-import '../../domain/models/coolify_operation.dart';
-import '../../domain/models/deployment_info.dart';
-import '../../domain/models/remote_resource.dart';
-import '../../domain/models/remote_variable.dart';
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/coolify/domain/domain.dart';
 
 /// Parses Coolify v4 JSON while keeping response bodies out of exceptions.
 class RestCoolifyDatasource extends CoolifyDatasource {

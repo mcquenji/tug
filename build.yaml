@@ -3,6 +3,7 @@ targets:
     builders:
       grumpy_gen:grumpy_config:
         options:
+          model_output: lib/src/app/domain/models/app_config.g.dart
           schema_output: schemas/v1/config.schema.json
           docs_output: docs/configuration.md
           schema_uri: https://raw.githubusercontent.com/mcquenji/tug/main/schemas/v1/config.schema.json

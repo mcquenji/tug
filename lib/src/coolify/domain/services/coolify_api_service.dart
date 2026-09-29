@@ -1,7 +1,7 @@
 import 'package:grumpy_cli/grumpy_cli.dart';
 import 'package:grumpy_io/grumpy_io.dart';
+import 'package:tug/src/app/app.dart';
 
-import '../../../shared/domain/models/coolify_context.dart';
 import '../models/coolify_operation.dart';
 
 /// Maps domain operations to Coolify HTTP requests. It does not parse resources.

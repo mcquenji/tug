@@ -1,0 +1,17 @@
+import 'package:grumpy_cli/grumpy_cli.dart';
+import 'package:tug/src/app/app.dart';
+
+/// Common configuration preflight for each independently declared command.
+abstract class TugCommand extends CliCommand {
+  const TugCommand();
+
+  @override
+  Future<CommandResult> execute(CommandContext context) async {
+    await validateConfiguration(context);
+    warnLocalSensitiveValues(context);
+    await run(context, AppConfig());
+    return CommandResult.success;
+  }
+
+  Future<void> run(CommandContext context, AppConfig config);
+}

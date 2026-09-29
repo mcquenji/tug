@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:tug/src/cli/tug_app.dart';
+import 'package:tug/src/app/app.dart';
 
 Future<void> main(List<String> arguments) async {
-  exitCode = await TugApp().run(arguments);
+  exitCode = await App().run(arguments);
 }

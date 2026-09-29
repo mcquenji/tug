@@ -1,8 +1,6 @@
 import 'package:grumpy_cli/grumpy_cli.dart';
-
-import '../../../shared/domain/models/app_config.g.dart';
-import '../../../shared/domain/models/coolify_context.dart';
-import '../../../workspace/domain/models/project_layout.dart';
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/workspace/workspace.dart';
 
 class DeploymentSpec extends Model {
   const DeploymentSpec(

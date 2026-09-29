@@ -109,3 +109,9 @@ fvm dart test
 ```
 
 See [the design](docs/plan.md) and [verification record](docs/verification.md) for behavior and release checks.
+
+## Code organization
+
+Tug follows EduPlanner's feature-module structure. `lib/src/app/app.dart` defines the root `App` and composes the features. Each feature has a matching entry point (`coolify/coolify.dart`, `workspace/workspace.dart`, and so on) that owns its dependency bindings and command routes, and exports its domain, presentation and utilities through barrel files.
+
+Domain contracts and models live in `domain/`; concrete services and datasources live in `infra/`. Each CLI command has its own file under its feature's `presentation/commands/`. Import other features through their module entry points. Configuration models belong to `app/domain/models/`, while generated offline schemas live in `lib/gen/`.

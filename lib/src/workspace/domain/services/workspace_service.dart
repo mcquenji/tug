@@ -1,6 +1,6 @@
 import 'package:grumpy_cli/grumpy_cli.dart';
+import 'package:tug/src/app/app.dart';
 
-import '../../../shared/domain/models/app_config.g.dart';
 import '../models/project_layout.dart';
 
 abstract class WorkspaceService extends Service {

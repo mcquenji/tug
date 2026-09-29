@@ -1,8 +1,8 @@
-/// Tug's typed Coolify and Serverpod configuration boundaries.
+/// Tug application and feature APIs.
 library;
 
-export 'src/cli/tug_app.dart';
-export 'src/coolify/domain/datasources/coolify_datasource.dart';
-export 'src/coolify/domain/services/coolify_api_service.dart';
-export 'src/serverpod/domain/datasources/serverpod_config_datasource.dart';
-export 'src/reconcile/domain/services/reconcile_service.dart';
+export 'src/app/app.dart';
+export 'src/coolify/coolify.dart';
+export 'src/reconcile/reconcile.dart';
+export 'src/serverpod/serverpod.dart';
+export 'src/workspace/workspace.dart';

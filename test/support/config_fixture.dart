@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:grumpy_io/grumpy_io.dart';
 import 'package:grumpy_cli/grumpy_cli.dart';
-import 'package:tug/src/shared/domain/models/app_config.g.dart';
+import 'package:grumpy_io/grumpy_io.dart';
+import 'package:tug/src/app/app.dart';
 
 Future<ConfigService> configFixture(
   Directory root, {

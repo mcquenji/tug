@@ -2,11 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:tug/src/cli/tug_app.dart';
-import 'package:tug/src/shared/domain/models/app_config.g.dart';
-import 'package:tug/src/shared/domain/models/coolify_context.dart';
-import 'package:tug/src/shared/utils/schema_validation.dart';
-import 'package:tug/src/shared/generated/schemas.g.dart';
+import 'package:tug/gen/schemas.g.dart';
+import 'package:tug/src/app/app.dart';
 
 import 'support/config_fixture.dart';
 import 'support/memory_terminal.dart';
@@ -75,7 +72,7 @@ environments:
 ''',
       );
       final terminal = MemoryTerminal();
-      final code = await TugApp(
+      final code = await App(
         terminal: terminal,
         files: config.files,
       ).run(['context', 'list']);

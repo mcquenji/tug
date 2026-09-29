@@ -3,18 +3,13 @@ import 'dart:io';
 
 import 'package:grumpy_cli/grumpy_cli.dart';
 import 'package:test/test.dart';
-import 'package:tug/src/shared/domain/models/app_config.g.dart';
-import 'package:tug/src/shared/domain/models/environment_config.dart';
-import 'package:tug/src/shared/domain/models/secret_reference.dart';
-import 'package:tug/src/shared/domain/models/coolify_context.dart';
-import 'package:tug/src/shared/domain/models/tug_exception.dart';
-import 'package:tug/src/workspace/domain/models/project_layout.dart';
-import 'package:tug/src/workspace/infra/services/native_workspace_service.dart';
-import 'package:tug/src/reconcile/domain/models/deployment_spec.dart';
-import 'package:tug/src/reconcile/infra/services/default_reconcile_service.dart';
-import 'package:tug/src/coolify/infra/services/rest_coolify_api_service.dart';
-import 'package:tug/src/coolify/infra/datasources/rest_coolify_datasource.dart';
-import 'package:tug/src/serverpod/infra/datasources/native_serverpod_config_datasource.dart';
+import 'package:tug/src/app/app.dart';
+import 'package:tug/src/coolify/infra/infra.dart';
+import 'package:tug/src/reconcile/infra/infra.dart';
+import 'package:tug/src/reconcile/reconcile.dart';
+import 'package:tug/src/serverpod/infra/infra.dart';
+import 'package:tug/src/workspace/infra/infra.dart';
+import 'package:tug/src/workspace/workspace.dart';
 
 import 'support/config_fixture.dart';
 import 'support/fake_coolify_network.dart';

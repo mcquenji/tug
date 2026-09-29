@@ -4,7 +4,8 @@ Validated on 2026-09-29 with Flutter 3.47.5, Dart 3.13.4 and a fresh Serverpod 4
 
 ## Completed
 
-- Static analysis with fatal infos, all 29 automated tests, generated-artifact freshness and native executable compilation passed.
+- Static analysis with fatal infos, all 32 automated tests, generated-artifact freshness and native executable compilation passed.
+- After the EduPlanner-style module refactor, CLI integration tests verified independent command-group routing, global context writes across app lifecycles, local initialization/environment writes and unchanged generation. Configuration and reconciliation regression tests still passed.
 - Grumpy's standard configuration precedence, whole-map replacement, scoped persistence and schema references.
 - Local sensitive-field warnings, including inactive contexts, without values in output.
 - Offline validation against the embedded canonical scoped schemas.
@@ -14,7 +15,7 @@ Validated on 2026-09-29 with Flutter 3.47.5, Dart 3.13.4 and a fresh Serverpod 4
 - The resulting image ran against disposable local PostgreSQL 18 and Redis 7.4 using runtime environment variables only. Database migrations, a Redis write/read, imported-password availability, Flutter HTML/JavaScript, the runtime API URL and a greeting API request passed.
 - An exported image audit found no native runtime configuration directory, password YAML or Tug manifest.
 - The local smoke-test containers, named/anonymous volumes, network and tagged image were removed.
-- Both EduPlanner repositories were inspected only for unsupported-layout diagnostics; their existing files and edits were preserved.
+- Both EduPlanner repositories were used read-only for unsupported-layout diagnostics; the frontend also served as the code-organization reference. Their existing files and edits were preserved.
 - Both requested test domains resolved in DNS. DNS was not modified.
 - The implementation was published as `main` and made the default branch, with the repository remaining private. The temporary `codex/tug-smoke-20260929` fixture branch and all remaining task-created validation scratch files were removed.
 
