@@ -217,7 +217,10 @@ class RestCoolifyApiService extends CoolifyApiService {
         op == CoolifyOperation.updateApplication) {
       return {
         'name': v['name'],
-        'git_repository': v['repository'],
+        // GitHub App deployments append this value to /repos/ on GitHub.
+        'git_repository': Uri.parse(
+          normalizeRepository(v['repository'] as String),
+        ).path.substring(1),
         'git_branch': v['branch'],
         'build_pack': 'dockerfile',
         'dockerfile_location': '/.coolify/Dockerfile',

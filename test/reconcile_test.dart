@@ -166,6 +166,27 @@ environments:
   );
 
   test(
+    'GitHub App repositories use slugs and repair legacy URL values',
+    () async {
+      await engine.apply(spec, environment: 'production');
+      final application = app('production');
+      expect(application['git_repository'], 'example/demo');
+      application['git_repository'] = 'https://github.com/example/demo';
+      await engine.apply(spec, environment: 'production');
+      expect(application['git_repository'], 'example/demo');
+      final writes = fake.mutations.length;
+      await engine.apply(spec, environment: 'production');
+      expect(fake.mutations.length, writes);
+      application['git_repository'] = 'someone-else/demo';
+      await expectLater(
+        engine.apply(spec, environment: 'production'),
+        throwsA(isA<TugException>()),
+      );
+      expect(fake.mutations.length, writes);
+    },
+  );
+
+  test(
     'manifest values and references override imported application values',
     () async {
       await explicit(

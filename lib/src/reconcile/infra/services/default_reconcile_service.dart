@@ -770,7 +770,8 @@ class DefaultReconcileService extends ReconcileService {
               .toSet()
               .containsAll((b ?? '').split(',')) &&
           (a ?? '').split(',').length == (b ?? '').split(',').length;
-      if (app.branch != env.branch ||
+      if (app.repository != Uri.parse(s.layout.repository).path.substring(1) ||
+          app.branch != env.branch ||
           app.name != fields['name'] ||
           !sameDomains(app.domains, fields['domains'] as String) ||
           app.dockerfile != '/.coolify/Dockerfile' ||
