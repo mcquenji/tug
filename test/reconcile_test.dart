@@ -117,6 +117,40 @@ environments:
   }
 
   test(
+    'project ownership marker uses Coolify-compatible punctuation',
+    () async {
+      await engine.apply(spec, environment: 'production');
+      final description = fake.projects.values.single['description'] as String;
+      expect(description, startsWith('managed-by=tug,app=demo,repository='));
+      expect(description, isNot(contains(':')));
+      expect(description, isNot(contains(';')));
+      // A subsequent run must rediscover and verify the existing project.
+      await engine.apply(spec, environment: 'production');
+      expect(fake.projects, hasLength(1));
+    },
+  );
+
+  test(
+    'legacy project markers remain owned but foreign repositories do not',
+    () async {
+      await engine.apply(spec, environment: 'production');
+      final project = fake.projects.values.single;
+      project['description'] = (project['description'] as String)
+          .replaceAll('=', ':')
+          .replaceAll(',', ';');
+      final writes = fake.mutations.length;
+      await engine.apply(spec, environment: 'production');
+      expect(fake.mutations.length, writes);
+      project['description'] = 'managed-by:tug;app:demo;repository:foreign';
+      await expectLater(
+        engine.apply(spec, environment: 'production'),
+        throwsA(isA<TugException>()),
+      );
+      expect(fake.mutations.length, writes);
+    },
+  );
+
+  test(
     'manifest values and references override imported application values',
     () async {
       await explicit(

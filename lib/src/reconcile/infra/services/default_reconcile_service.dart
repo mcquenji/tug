@@ -37,7 +37,12 @@ class DefaultReconcileService extends ReconcileService {
       .toString()
       .substring(0, 20);
   String _marker(DeploymentSpec s) =>
-      'managed-by:tug;app:${s.config.name};repository:${_identity(s)}';
+      'managed-by=tug,app=${s.config.name},repository=${_identity(s)}';
+  bool _hasProjectMarker(RemoteResource project, DeploymentSpec s) =>
+      project.description.contains(_marker(s)) ||
+      project.description.contains(
+        'managed-by:tug;app:${s.config.name};repository:${_identity(s)}',
+      );
   List<String> _tags(DeploymentSpec s, String env) => [
     'managed-by:tug',
     'tug-app:${s.config.name}',
@@ -166,12 +171,11 @@ class DefaultReconcileService extends ReconcileService {
     final projects = await remote.list(CoolifyOperation.projects);
     final project = _one(
       projects,
-      (r) => r.name == s.config.name || r.description.contains(_marker(s)),
+      (r) => r.name == s.config.name || _hasProjectMarker(r, s),
       'project',
     );
     if (project != null &&
-        (!project.description.contains(_marker(s)) ||
-            project.name != s.config.name)) {
+        (!_hasProjectMarker(project, s) || project.name != s.config.name)) {
       throw const TugException(
         'Project ownership or repository identity differs; refusing to adopt it.',
       );
@@ -565,7 +569,7 @@ class DefaultReconcileService extends ReconcileService {
           'description': _marker(s),
         }, () async => (await _project(s))?.uuid);
         project = await remote.get('project', uuid);
-        if (!project.description.contains(_marker(s))) {
+        if (!_hasProjectMarker(project, s)) {
           throw const TugException(
             'Created project ownership was not persisted.',
           );
