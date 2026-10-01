@@ -236,7 +236,9 @@ class RestCoolifyDatasource extends CoolifyDatasource {
       result[key] = RemoteVariable(
         uuid: _required(v, 'uuid'),
         key: key,
-        value: _string(v['value']),
+        // Coolify serializes empty values as null, but omits the field
+        // entirely when the token lacks read:sensitive permission.
+        value: v.containsKey('value') ? (_string(v['value']) ?? '') : null,
         runtime: _bool(v['is_runtime']) ?? false,
         buildtime: _bool(v['is_buildtime']) ?? false,
         literal: _bool(v['is_literal']) ?? false,

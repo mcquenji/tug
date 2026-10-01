@@ -151,6 +151,21 @@ environments:
   );
 
   test(
+    'explicit null baseline is empty while redacted values stay blocked',
+    () async {
+      await engine.apply(spec, environment: 'production');
+      final baseline = vars('production')['TUG_DEPLOYMENT_BASELINE']!;
+      baseline['value'] = null;
+      await engine.status(spec, environment: 'production');
+      baseline.remove('value');
+      await expectLater(
+        engine.status(spec, environment: 'production'),
+        throwsA(isA<TugException>()),
+      );
+    },
+  );
+
+  test(
     'manifest values and references override imported application values',
     () async {
       await explicit(
