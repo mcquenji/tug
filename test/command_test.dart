@@ -20,8 +20,12 @@ void main() {
   });
   tearDown(() async => temp.delete(recursive: true));
 
-  Future<MemoryTerminal> invoke(List<String> arguments, {int code = 0}) async {
-    final terminal = MemoryTerminal();
+  Future<MemoryTerminal> invoke(
+    List<String> arguments, {
+    int code = 0,
+    List<String>? input,
+  }) async {
+    final terminal = MemoryTerminal(input: input);
     final result = await App(
       terminal: terminal,
       files: config.files,
@@ -89,6 +93,99 @@ void main() {
       expect(await File(config.local.path).readAsString(), localBefore);
     },
   );
+
+  test('context add prompts for every missing value', () async {
+    final terminal = await invoke(
+      ['context', 'add'],
+      input: [
+        'home',
+        'https://coolify.example.com',
+        'COOLIFY_API_TOKEN',
+        'server',
+        'destination',
+        'github-app',
+        'web.example.com',
+        'api.example.com',
+      ],
+    );
+    final global =
+        loadYaml(await File(config.global.path).readAsString()) as Map;
+    final context = global['contexts']['home'] as Map;
+    expect(global['currentContext'], 'home');
+    expect(context['url'], 'https://coolify.example.com');
+    expect(context['tokenEnv'], 'COOLIFY_API_TOKEN');
+    expect(context['token'], isNull);
+    expect(context['server'], 'server');
+    expect(context['destination'], 'destination');
+    expect(context['githubApp'], 'github-app');
+    expect(context['domains']['default'], {
+      'web': 'web.example.com',
+      'api': 'api.example.com',
+    });
+    expect(terminal.promptSecrets, List.filled(8, false));
+  });
+
+  test(
+    'context add skips supplied values and obscures a stored token',
+    () async {
+      final terminal = await invoke(
+        [
+          'context',
+          'add',
+          'home',
+          '--url',
+          'https://coolify.example.com',
+          '--server',
+          'server',
+          '--destination',
+          'destination',
+          '--github-app',
+          'github-app',
+          '--web-domain',
+          'web.example.com',
+        ],
+        input: ['', 'secret-test-token', ''],
+      );
+      final global =
+          loadYaml(await File(config.global.path).readAsString()) as Map;
+      final context = global['contexts']['home'] as Map;
+      expect(context['token'], 'secret-test-token');
+      expect(context['tokenEnv'], isNull);
+      expect(context['domains']['default'], {
+        'web': 'web.example.com',
+        'api': 'auto',
+      });
+      expect(terminal.promptSecrets, [false, true, false]);
+      expect(
+        '${terminal.output}${terminal.errors}',
+        isNot(contains('secret-test-token')),
+      );
+    },
+  );
+
+  test(
+    'context add validates prompted names without writing configuration',
+    () async {
+      final before = await File(config.global.path).readAsString();
+      final terminal = await invoke(
+        ['context', 'add'],
+        input: ['invalid name'],
+        code: 1,
+      );
+      expect(terminal.errors.toString(), contains('Invalid context name'));
+      expect(await File(config.global.path).readAsString(), before);
+    },
+  );
+
+  test('context add requires missing values in non-interactive mode', () async {
+    final before = await File(config.global.path).readAsString();
+    final terminal = await invoke(['context', 'add'], code: 64);
+    expect(
+      terminal.errors.toString(),
+      contains('Cannot prompt for "Context name"'),
+    );
+    expect(await File(config.global.path).readAsString(), before);
+  });
 
   test('workspace and environment modules preserve scoped initialization and generation', () async {
     await File(config.local.path).delete();

@@ -36,8 +36,10 @@ CoolifyContext resolveCoolifyContext(CommandContext c, AppConfig config) {
 }
 
 /// Validate a context name before saving it in the global configuration.
-String contextName(CommandContext context) {
-  final name = context.args.require(CommandOptions.name);
+String contextName(CommandContext context) =>
+    validateContextName(context.args.require(CommandOptions.name));
+
+String validateContextName(String name) {
   if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9_-]*$').hasMatch(name)) {
     throw const TugException('Invalid context name.');
   }

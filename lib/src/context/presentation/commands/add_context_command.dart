@@ -5,10 +5,13 @@ import 'package:tug/src/coolify/coolify.dart';
 
 class AddContextCommand extends TugCommand {
   const AddContextCommand();
+
+  static final _name = CliParameter('name', type: CliValueType.string());
+
   @override
   ArgumentSchema get arguments => ArgumentSchema(
     arguments: [
-      CommandOptions.name,
+      _name,
       CommandOptions.url,
       CommandOptions.tokenEnv,
       CommandOptions.server,
@@ -21,20 +24,36 @@ class AddContextCommand extends TugCommand {
   );
   @override
   Future<void> run(CommandContext c, AppConfig config) async {
-    final selected = contextName(c);
+    final selected = validateContextName(
+      c.args.get(_name) ?? await c.prompts.text('Context name'),
+    );
     final global = c.config.global;
     final contexts = {...?global.get(AppConfig.settings.contexts)};
     if (contexts.containsKey(selected) &&
         !c.args.require(CommandOptions.force)) {
       throw const TugException('Context exists; use --force to replace it.');
     }
-    Future<String> setting(CliOption<String> option, String label) async =>
-        c.args.get(option) ?? await c.prompts.text(label);
+    Future<String> setting(
+      CliOption<String> option,
+      String label, {
+      String? defaultValue,
+    }) async =>
+        c.args.get(option) ??
+        await c.prompts.text(
+          label,
+          defaultValue: defaultValue,
+          allowDefaultNonInteractive: defaultValue != null,
+        );
     final address = await setting(
       CommandOptions.url,
       'Coolify HTTPS URL (credential destination)',
     );
-    final ref = c.args.get(CommandOptions.tokenEnv);
+    final tokenEnv = await setting(
+      CommandOptions.tokenEnv,
+      'Token environment variable (leave blank to save an API token)',
+      defaultValue: '',
+    );
+    final ref = tokenEnv.isEmpty ? null : tokenEnv;
     if (ref != null && !RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$').hasMatch(ref)) {
       throw const TugException('Invalid token environment variable name.');
     }
@@ -52,12 +71,18 @@ class AddContextCommand extends TugCommand {
       ),
       githubApp: await setting(CommandOptions.githubApp, 'GitHub App UUID'),
       domains: {
-        if (c.args.wasProvided(CommandOptions.web) ||
-            c.args.wasProvided(CommandOptions.api))
-          'default': DomainConfig(
-            web: c.args.get(CommandOptions.web) ?? 'auto',
-            api: c.args.get(CommandOptions.api) ?? 'auto',
+        'default': DomainConfig(
+          web: await setting(
+            CommandOptions.web,
+            'Web domain',
+            defaultValue: 'auto',
           ),
+          api: await setting(
+            CommandOptions.api,
+            'API domain',
+            defaultValue: 'auto',
+          ),
+        ),
       },
     );
     // Validate the destination without issuing any network request.

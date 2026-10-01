@@ -28,7 +28,9 @@ tug context add home \
 tug context use home
 ```
 
-Set the token in your shell using your normal secret manager. Do not put its value in an argument. Omit `--token-env` to enter a token through an obscured prompt and save it globally. API access requires `read`, `read:sensitive`, `write` and `deploy` permissions.
+Run `tug context add` to be prompted for all missing values, including the context name. Supplied arguments skip their prompts. Domain prompts default to `auto`; unattended invocations also use that default. Replacing an existing context still requires `--force`.
+
+Set the token in your shell using your normal secret manager. Do not put its value in an argument. Omit `--token-env` to be prompted for the environment variable name, or leave that prompt blank to enter a token through an obscured prompt and save it globally. API access requires `read`, `read:sensitive`, `write` and `deploy` permissions.
 
 Grumpy's default global configuration location is used (`~/Library/Application Support/tug/config.yaml` on macOS, XDG on Linux). Project configuration is `coolify.yaml`. Resolution is local → global → defaults; maps and lists replace lower-precedence values. Context selection is `--context`, then project `context`, then resolved `currentContext`. Local credentials are allowed with a warning that names the setting but never its value.
 

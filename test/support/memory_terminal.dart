@@ -1,10 +1,14 @@
 import 'package:grumpy_cli/grumpy_cli.dart';
 
 class MemoryTerminal extends TerminalService {
-  MemoryTerminal() : super.internal();
+  MemoryTerminal({List<String>? input})
+    : _input = input?.iterator,
+      super.internal();
+  final Iterator<String>? _input;
+  final promptSecrets = <bool>[];
   final output = StringBuffer(), errors = StringBuffer();
   @override
-  bool get interactive => false;
+  bool get interactive => _input != null;
   @override
   bool get supportsAnsi => false;
   @override
@@ -13,13 +17,14 @@ class MemoryTerminal extends TerminalService {
   void writeError(String text) => errors.write(text);
   @override
   Future<String?> readLine({required CancellationToken cancellation}) async =>
-      null;
+      _input?.moveNext() == true ? _input!.current : null;
   @override
   Future<TerminalKey?> readKey({
     required CancellationToken cancellation,
   }) async => null;
   @override
-  void beginPrompt({bool raw = false, bool secret = false}) {}
+  void beginPrompt({bool raw = false, bool secret = false}) =>
+      promptSecrets.add(secret);
   @override
   void endPrompt() {}
   @override
