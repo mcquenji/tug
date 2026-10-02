@@ -689,6 +689,7 @@ final class AppConfigSettings extends Model {
                   },
                 },
               }).nullable(),
+          "resourceName": CliValueType.string().nullable(),
           "secrets": CliValueType.map(
             CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
@@ -792,6 +793,9 @@ final class AppConfigSettings extends Model {
                   })
                   .nullable()
                   .decode(json.containsKey("redis") ? json["redis"] : null),
+          resourceName: CliValueType.string().nullable().decode(
+            json.containsKey("resourceName") ? json["resourceName"] : null,
+          ),
           secrets: CliValueType.map(
             CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
@@ -887,6 +891,9 @@ final class AppConfigSettings extends Model {
                   })
                   .nullable()
                   .encode(value.redis),
+          "resourceName": CliValueType.string().nullable().encode(
+            value.resourceName,
+          ),
           "secrets": CliValueType.map(
             CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
@@ -985,6 +992,14 @@ final class AppConfigSettings extends Model {
               {"type": "null"},
             ],
             "description": "Override the project Redis setting for this environment. When omitted,\nthe project-level redis configuration applies.",
+            "default": null,
+          },
+          "resourceName": {
+            "anyOf": [
+              {"type": "string"},
+              {"type": "null"},
+            ],
+            "description": "Coolify application resource name, preserving capitalization. Defaults to\n`<project>-<environment>-app`. Changes rename the existing managed application;\nproject identity and PostgreSQL/Redis resource names are unchanged.",
             "default": null,
           },
           "secrets": {
@@ -1071,6 +1086,7 @@ final class AppConfigSettings extends Model {
                   },
                 },
               }).nullable(),
+          "resourceName": CliValueType.string().nullable(),
           "secrets": CliValueType.map(
             CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
@@ -1174,6 +1190,9 @@ final class AppConfigSettings extends Model {
                   })
                   .nullable()
                   .decode(json.containsKey("redis") ? json["redis"] : null),
+          resourceName: CliValueType.string().nullable().decode(
+            json.containsKey("resourceName") ? json["resourceName"] : null,
+          ),
           secrets: CliValueType.map(
             CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
@@ -1269,6 +1288,9 @@ final class AppConfigSettings extends Model {
                   })
                   .nullable()
                   .encode(value.redis),
+          "resourceName": CliValueType.string().nullable().encode(
+            value.resourceName,
+          ),
           "secrets": CliValueType.map(
             CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
@@ -1367,6 +1389,14 @@ final class AppConfigSettings extends Model {
               {"type": "null"},
             ],
             "description": "Override the project Redis setting for this environment. When omitted,\nthe project-level redis configuration applies.",
+            "default": null,
+          },
+          "resourceName": {
+            "anyOf": [
+              {"type": "string"},
+              {"type": "null"},
+            ],
+            "description": "Coolify application resource name, preserving capitalization. Defaults to\n`<project>-<environment>-app`. Changes rename the existing managed application;\nproject identity and PostgreSQL/Redis resource names are unchanged.",
             "default": null,
           },
           "secrets": {

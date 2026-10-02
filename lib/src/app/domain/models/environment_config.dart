@@ -9,6 +9,7 @@ import 'secret_reference.dart';
 class EnvironmentConfig extends Model {
   const EnvironmentConfig({
     this.branch = 'main',
+    this.resourceName,
     this.configMode,
     this.env = const {},
     this.secrets = const {},
@@ -18,6 +19,11 @@ class EnvironmentConfig extends Model {
 
   /// Git branch Coolify deploys for this environment.
   final String branch;
+
+  /// Coolify application resource name, preserving capitalization. Defaults to
+  /// `<project>-<environment>-app`. Changes rename the existing managed application;
+  /// project identity and PostgreSQL/Redis resource names are unchanged.
+  final String? resourceName;
 
   /// Serverpod configuration mode. Defaults to production for the production
   /// environment and staging otherwise; the runtime mode remains production.

@@ -81,6 +81,21 @@ Tug never stages or commits files. Native runtime YAML, passwords, `.env` files 
 
 Tug enables and reconciles Coolify's HTTP health check at `http://127.0.0.1:8080/readyz` (GET, expected status 200), using a 10-second interval, 5-second timeout, 3 retries and a 60-second startup grace period. The generated runtime includes a static BusyBox shell and wget so Coolify can execute the check inside the container. Existing projects must review and run `tug generate --force`, then commit the updated Dockerfile before applying this version.
 
+## Application resource names
+
+Set `resourceName` per environment in `coolify.yaml` to choose the Coolify application name:
+
+```yaml
+name: stop-it
+environments:
+  production:
+    resourceName: StopIt
+  staging:
+    resourceName: StopIt Staging
+```
+
+Names preserve capitalization and may contain spaces, but must be nonempty without surrounding whitespace or control characters, and must not conflict with another resource. Omit `resourceName` to use `<project>-<environment>-app` (for example, `stop-it-production-app`). Run `tug plan --environment production` to preview and `tug apply --environment production` to apply. Changing or removing the override renames the existing managed application in place; project identity, database/Redis names, credentials and domains remain unchanged.
+
 ## Runtime configuration import
 
 During the first apply for each environment, Tug reads local `<server>/config/<configMode>.yaml` and `config/passwords.yaml`. Mode-specific passwords override `shared`. Production imports `production` by default; other environments import `staging`. An explicit `configMode` selects another source while the deployed run mode remains production.

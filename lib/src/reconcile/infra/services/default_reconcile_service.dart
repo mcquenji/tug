@@ -49,6 +49,9 @@ class DefaultReconcileService extends ReconcileService {
   bool _owned(RemoteResource r, DeploymentSpec s, String env) =>
       _tags(s, env).every(r.tags.contains);
   String _resourceName(DeploymentSpec s, String env, String kind) =>
+      (kind == 'application'
+          ? s.config.environments[env]?.resourceName
+          : null) ??
       '${s.config.name}-$env-${kind == 'application' ? 'app' : kind}';
   String _mode(String env, EnvironmentConfig config) =>
       config.configMode ?? (env == 'production' ? 'production' : 'staging');
@@ -517,6 +520,7 @@ class DefaultReconcileService extends ReconcileService {
     }
     final selected = _selected(s, environment);
     final domainSet = <String>{};
+    final applicationNames = <String>{};
     for (final name in s.config.environments.keys) {
       _validateName(name, 'environment');
       for (final type in ['web', 'api']) {
@@ -527,6 +531,21 @@ class DefaultReconcileService extends ReconcileService {
         }
       }
       final settings = s.config.environments[name]!;
+      final resourceName = _resourceName(s, name, 'application');
+      if (resourceName.trim().isEmpty ||
+          resourceName != resourceName.trim() ||
+          RegExp(r'[\x00-\x1f\x7f]').hasMatch(resourceName)) {
+        throw TugException(
+          'environments.$name.resourceName must be nonempty with no surrounding whitespace or control characters.',
+        );
+      }
+      if (!applicationNames.add(resourceName) ||
+          resourceName == _resourceName(s, name, 'postgres') ||
+          resourceName == _resourceName(s, name, 'redis')) {
+        throw TugException(
+          'environments.$name.resourceName conflicts with another resource name.',
+        );
+      }
       if (!RegExp(r'^(?!-)(?!.*\.\.)[A-Za-z0-9_./-]+$')
               .hasMatch(settings.branch) ||
           settings.branch.endsWith('/') ||
@@ -565,6 +584,15 @@ class DefaultReconcileService extends ReconcileService {
     }
     // Check all visible application domains before any write; Coolify also rejects forced claims.
     for (final app in await remote.list(CoolifyOperation.applications)) {
+      if (snapshots.any(
+        (e) =>
+            app.name == _resourceName(s, e.name, 'application') &&
+            app.uuid != e.application?.uuid,
+      )) {
+        throw const TugException(
+          'A requested application resource name is already in use. Choose a different resourceName.',
+        );
+      }
       final ourIds = snapshots.map((e) => e.application?.uuid).toSet();
       if (ourIds.contains(app.uuid)) continue;
       for (final domain in (app.domains ?? '').split(',')) {
@@ -768,7 +796,9 @@ class DefaultReconcileService extends ReconcileService {
           'https://${e.domains['web']}:8082,https://${e.domains['api']}:8080',
     };
     if (e.application == null) {
-      terminal.writeln('${e.name}: create application.');
+      terminal.writeln(
+        '${e.name}: create application ${jsonEncode(fields['name'])}.',
+      );
       changed = true;
       if (!plan) {
         final uuid = await _create(
@@ -796,6 +826,11 @@ class DefaultReconcileService extends ReconcileService {
       }
     } else {
       final app = e.application!;
+      if (app.name != fields['name']) {
+        terminal.writeln(
+          '${e.name}: rename application ${jsonEncode(app.name)} to ${jsonEncode(fields['name'])}.',
+        );
+      }
       bool sameDomains(String? a, String? b) =>
           (a ?? '')
               .split(',')

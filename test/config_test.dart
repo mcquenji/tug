@@ -113,6 +113,42 @@ contexts:
     },
   );
 
+  test(
+    'application resource names decode and round-trip per environment',
+    () async {
+      final config = await configFixture(
+        temp,
+        local: '''name: stop-it
+environments:
+  production:
+    resourceName: StopIt
+  staging:
+    resourceName: StopIt Staging
+  preview: {}
+''',
+      );
+      final environments = AppConfig.defaults()
+          .resolveConfig(config)
+          .environments;
+      expect(environments['production']!.resourceName, 'StopIt');
+      expect(environments['staging']!.resourceName, 'StopIt Staging');
+      expect(environments['preview']!.resourceName, isNull);
+      final encoded =
+          AppConfig.settings.environments.type.encode(environments) as Map;
+      expect(encoded['production']['resourceName'], 'StopIt');
+      expect(encoded['staging']['resourceName'], 'StopIt Staging');
+      validateOffline({'environments': encoded}, scope: 'local');
+      expect(
+        () => validateOffline({
+          'environments': {
+            'production': {'resourceName': 123},
+          },
+        }, scope: 'local'),
+        throwsException,
+      );
+    },
+  );
+
   test('schema and config decoder reject malformed runtime references', () {
     for (final invalid in [
       123,

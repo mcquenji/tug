@@ -104,6 +104,156 @@ environments:
   Map<String, Map<String, dynamic>> vars(String env) =>
       fake.variables[app(env)['uuid']]!;
 
+  Future<void> resourceNames({String? production, String? staging}) async {
+    await configService.local.set(AppConfig.settings.environments, {
+      'production': EnvironmentConfig(resourceName: production),
+      'staging': EnvironmentConfig(resourceName: staging),
+    });
+    spec = DeploymentSpec(
+      AppConfig.defaults().resolveConfig(configService),
+      spec.context,
+      spec.layout,
+      spec.processEnvironment,
+    );
+  }
+
+  test(
+    'custom application names preserve case and environment isolation',
+    () async {
+      await resourceNames(production: 'StopIt', staging: 'StopIt Staging');
+      await engine.apply(spec);
+      expect(
+        fake.resources.values.map((r) => r['name']),
+        unorderedEquals([
+          'StopIt',
+          'demo-production-postgres',
+          'demo-production-redis',
+          'StopIt Staging',
+          'demo-staging-postgres',
+          'demo-staging-redis',
+        ]),
+      );
+      final writes = fake.mutations.length;
+      await engine.apply(spec);
+      expect(fake.mutations.length, writes);
+    },
+  );
+
+  test(
+    'name override renames in place after cache loss and can be removed',
+    () async {
+      await engine.apply(spec);
+      final application = app('production');
+      final uuid = application['uuid'];
+      final resourceIds = fake.resources.keys.toSet();
+      final databasePassword = vars(
+        'production',
+      )['SERVERPOD_DATABASE_PASSWORD']!['value'];
+      final tags = List.of(application['tags'] as List);
+      await File('${spec.layout.root}/.coolify/state.json').delete();
+      await resourceNames(production: 'StopIt');
+      final writes = fake.mutations.length;
+      await engine.apply(spec, environment: 'production', plan: true);
+      expect(fake.mutations.length, writes);
+      expect(application['name'], 'demo-production-app');
+      expect(
+        terminal.output.toString(),
+        contains('rename application "demo-production-app" to "StopIt"'),
+      );
+      await engine.apply(spec, environment: 'production');
+      expect(application['name'], 'StopIt');
+      expect(fake.resources.keys.toSet(), resourceIds);
+      expect(application['tags'], tags);
+      expect(
+        fake.variables[uuid]!['SERVERPOD_DATABASE_PASSWORD']!['value'],
+        databasePassword,
+      );
+      expect(app('staging')['name'], 'demo-staging-app');
+      final afterRename = fake.mutations.length;
+      await engine.apply(spec);
+      expect(fake.mutations.length, afterRename);
+      await resourceNames();
+      await engine.apply(spec, environment: 'production');
+      expect(app('production')['uuid'], uuid);
+      expect(fake.resources.keys.toSet(), resourceIds);
+    },
+  );
+
+  for (final name in [
+    '',
+    '   ',
+    ' StopIt',
+    'StopIt ',
+    'Stop\nIt',
+    'demo-staging-app',
+    'demo-production-postgres',
+    'demo-production-redis',
+  ]) {
+    test(
+      'invalid or conflicting resource name ${jsonEncode(name)} fails before writes',
+      () async {
+        await resourceNames(production: name);
+        await expectLater(engine.apply(spec), throwsA(isA<TugException>()));
+        expect(fake.mutations, isEmpty);
+      },
+    );
+  }
+
+  for (final existing in [false, true]) {
+    test(
+      'custom name collision outside environment blocks ${existing ? 'rename' : 'creation'}',
+      () async {
+        if (existing) await engine.apply(spec, environment: 'production');
+        fake.resources['foreign'] = {
+          'uuid': 'foreign',
+          'kind': 'application',
+          'name': 'StopIt',
+          'environment_uuid': 'foreign-environment',
+          'tags': <String>[],
+        };
+        await resourceNames(production: 'StopIt');
+        final writes = fake.mutations.length;
+        await expectLater(
+          engine.apply(spec, environment: 'production'),
+          throwsA(isA<TugException>()),
+        );
+        expect(fake.mutations.length, writes);
+      },
+    );
+  }
+
+  test(
+    'custom name does not adopt an unowned application in the environment',
+    () async {
+      await engine.apply(spec, environment: 'production');
+      final application = app('production');
+      application['name'] = 'StopIt';
+      application['tags'] = <String>[];
+      await resourceNames(production: 'StopIt');
+      final writes = fake.mutations.length;
+      await expectLater(
+        engine.apply(spec, environment: 'production'),
+        throwsA(isA<TugException>()),
+      );
+      expect(fake.mutations.length, writes);
+    },
+  );
+
+  test('uncertain custom application creation is rediscovered', () async {
+    await resourceNames(production: 'StopIt');
+    fake.loseCreationPath = 'applications/private-github-app';
+    await engine.apply(spec, environment: 'production');
+    expect(
+      fake.resources.values
+          .where((r) => r['kind'] == 'application')
+          .single['name'],
+      'StopIt',
+    );
+    final writes = fake.mutations.length;
+    await engine.apply(spec, environment: 'production');
+    expect(fake.mutations.length, writes);
+  });
+
   for (final state in ['running:unhealthy', 'exited', 'running:unknown']) {
     test(
       'finished deployment with $state application is not success',
