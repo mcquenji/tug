@@ -2,7 +2,7 @@
 import hashlib
 import io
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import tarfile
 import urllib.request
@@ -18,6 +18,38 @@ CHECKSUMS = {
 }
 
 
+def extract_bundle(data, suffix, directory):
+    # Some platforms ship a launcher plus src/dart and a snapshot. Preserve the
+    # whole verified bundle, while refusing links and paths outside the target.
+    def destination(name):
+        relative = PurePosixPath(name)
+        if relative.is_absolute() or '..' in relative.parts or '\\' in name or ':' in name:
+            raise ValueError('Unsafe path in FVM archive')
+        return directory.joinpath(*relative.parts)
+
+    if suffix == 'zip':
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            for member in archive.infolist():
+                path = destination(member.filename)
+                if member.is_dir():
+                    path.mkdir(parents=True, exist_ok=True)
+                else:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(archive.read(member))
+    else:
+        with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
+            for member in archive.getmembers():
+                path = destination(member.name)
+                if member.isdir():
+                    path.mkdir(parents=True, exist_ok=True)
+                elif member.isfile():
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(archive.extractfile(member).read())
+                    path.chmod(member.mode & 0o777)
+                else:
+                    raise ValueError('Unsupported link or special file in FVM archive')
+
+
 def main():
     system = {'Darwin': 'macos', 'Linux': 'linux', 'Windows': 'windows'}[platform.system()]
     arch = {'arm64': 'arm64', 'aarch64': 'arm64', 'x86_64': 'x64', 'amd64': 'x64'}[platform.machine().lower()]
@@ -29,24 +61,12 @@ def main():
         data = response.read()
     if hashlib.sha256(data).hexdigest() != CHECKSUMS[target]:
         raise RuntimeError('FVM archive checksum mismatch')
-    # Extract only the executable, never arbitrary archive paths or symlinks.
-    if suffix == 'zip':
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            matches = [p for p in archive.namelist() if Path(p).name == name]
-            if len(matches) != 1:
-                raise RuntimeError('Expected exactly one FVM executable')
-            binary = archive.read(matches[0])
-    else:
-        with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
-            matches = [m for m in archive.getmembers() if m.isfile() and Path(m.name).name == name]
-            if len(matches) != 1:
-                raise RuntimeError('Expected exactly one FVM executable')
-            binary = archive.extractfile(matches[0]).read()
     directory = Path(os.environ['RUNNER_TEMP']) / 'tug-fvm-bin'
-    directory.mkdir(parents=True, exist_ok=True)
-    executable = directory / name
-    executable.write_bytes(binary)
-    executable.chmod(0o755)
+    extract_bundle(data, suffix, directory)
+    matches = [p for p in directory.rglob(name) if p.is_file()]
+    if len(matches) != 1:
+        raise RuntimeError('Expected exactly one FVM launcher')
+    directory = matches[0].parent
     with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as output:
         output.write(f'{directory}\n')
     with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
