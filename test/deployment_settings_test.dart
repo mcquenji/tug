@@ -33,6 +33,140 @@ class ConnectApp extends App {
 }
 
 void main() {
+  for (final choice in ['1', '2']) {
+    test(
+      'first checkout use selects server $choice despite a global default',
+      () async {
+        final root = await Directory.systemTemp.createTemp('tug-servers-');
+        addTearDown(() => root.delete(recursive: true));
+        final config = await configFixture(
+          root,
+          global: '''contexts:
+  home:
+    url: https://coolify.example.com
+    token: test-token
+    server: server
+    destination: destination
+    githubApp: github
+''',
+        );
+        final globalBefore = await File(config.global.path).readAsString();
+        final sharedBefore = await File(config.local.path).readAsString();
+        final fake = FakeCoolifyNetwork()
+          ..servers.add({'uuid': 'second-server', 'name': 'Second server'})
+          ..destinations['second-server'] = [
+            {'uuid': 'second-destination', 'name': 'Second network'},
+          ];
+        final api = RestCoolifyApiService(fake, CancellationToken());
+        CoolifyContext? resolved;
+        Future<int> connect(MemoryTerminal terminal, List<String> args) =>
+            ConnectApp(
+              files: config.files,
+              terminal: terminal,
+              connect: (c, cfg) async {
+                resolved = await resolveCoolifyContext(
+                  c,
+                  cfg,
+                  api: api,
+                  remote: RestCoolifyDatasource(api),
+                );
+              },
+            ).run(['connect', ...args]);
+
+        final terminal = MemoryTerminal(input: [choice, '1']);
+        expect(
+          await connect(terminal, ['--context', 'home']),
+          0,
+          reason: terminal.errors.toString(),
+        );
+        final server = choice == '1' ? 'server' : 'second-server';
+        final destination = choice == '1'
+            ? 'destination'
+            : 'second-destination';
+        expect(resolved!.server, server);
+        expect(resolved!.destination, destination);
+        expect(terminal.promptSecrets, hasLength(2));
+        expect(terminal.output.toString(), contains('Deployment target:'));
+        expect(terminal.output.toString(), contains('server $server'));
+        expect(
+          fake.requests
+              .where((r) => r.uri.path.endsWith('/destinations'))
+              .map((r) => r.uri.path),
+          ['/api/v1/servers/$server/destinations'],
+        );
+        final saved = await DeploymentSettings.load('${root.path}/local');
+        expect(saved.contexts['home']!.server, server);
+        expect(saved.contexts['home']!.destination, destination);
+
+        final again = MemoryTerminal();
+        expect(await connect(again, []), 0);
+        expect(again.promptSecrets, isEmpty);
+        expect(resolved!.server, server);
+        expect(again.output.toString(), contains('server $server'));
+
+        final reselect = MemoryTerminal(
+          input: [choice == '1' ? '2' : '1', '1'],
+        );
+        expect(await connect(reselect, ['--select-server']), 0);
+        expect(resolved!.server, choice == '1' ? 'second-server' : 'server');
+        expect(
+          resolved!.destination,
+          choice == '1' ? 'second-destination' : 'destination',
+        );
+        expect(await File(config.global.path).readAsString(), globalBefore);
+        expect(await File(config.local.path).readAsString(), sharedBefore);
+        expect(fake.mutations, isEmpty);
+      },
+    );
+  }
+
+  test(
+    'unattended selection uses only an explicit default and cannot reselect',
+    () async {
+      final root = await Directory.systemTemp.createTemp('tug-servers-');
+      addTearDown(() => root.delete(recursive: true));
+      final config = await configFixture(
+        root,
+        global: '''contexts:
+  home:
+    url: https://coolify.example.com
+    token: test-token
+    server: server
+    destination: destination
+    githubApp: github
+''',
+      );
+      final fake = FakeCoolifyNetwork();
+      final api = RestCoolifyApiService(fake, CancellationToken());
+      Future<int> connect(List<String> args) => ConnectApp(
+        files: config.files,
+        terminal: MemoryTerminal(),
+        connect: (c, cfg) async {
+          await resolveCoolifyContext(
+            c,
+            cfg,
+            api: api,
+            remote: RestCoolifyDatasource(api),
+          );
+        },
+      ).run(['connect', '--context', 'home', '--non-interactive', ...args]);
+      expect(await connect([]), 0);
+      final file = File('${root.path}/local/.coolify/local.yaml');
+      final before = await file.readAsString();
+      expect(await connect(['--select-server']), 64);
+      expect(await file.readAsString(), before);
+      await file.delete();
+      await config.global.set(AppConfig.settings.contexts, {
+        'home': const CoolifyContext(
+          url: 'https://coolify.example.com',
+          token: 'test-token',
+        ),
+      });
+      expect(await connect([]), 64);
+      expect(await file.exists(), false);
+    },
+  );
+
   test(
     'first use can configure a private connection without global contexts',
     () async {

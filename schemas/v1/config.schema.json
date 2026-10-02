@@ -18,7 +18,7 @@
             "properties": {
               "destination": {
                 "type": "string",
-                "description": "Coolify destination UUID on the selected server. When empty, deployment\ncommands prompt for a destination and save it in .coolify/local.yaml.",
+                "description": "Default Coolify destination UUID. Selecting a server also selects one of\nits destinations; a different server does not inherit this destination.\nThe checkout's choice is saved in .coolify/local.yaml.",
                 "default": ""
               },
               "domains": {
@@ -49,7 +49,7 @@
               },
               "server": {
                 "type": "string",
-                "description": "Coolify server UUID. When empty, deployment commands prompt for a server\nand save the choice in .coolify/local.yaml.",
+                "description": "Default Coolify server UUID. Interactive deployment commands confirm the\nserver on first use of each checkout and save it in .coolify/local.yaml.\nUse --select-server to choose again. Unattended commands may use this default.",
                 "default": ""
               },
               "token": {

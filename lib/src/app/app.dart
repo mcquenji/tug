@@ -70,6 +70,7 @@ class App extends CliApp<AppConfig> {
   ArgumentSchema get arguments => ArgumentSchema(
     arguments: [
       CommandOptions.context,
+      CommandOptions.selectServer,
       CommandOptions.version,
       CommandOptions.envFile,
       CommandOptions.color,

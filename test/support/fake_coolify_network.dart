@@ -12,6 +12,14 @@ class FakeCoolifyNetwork extends NetworkService {
   final variables = <String, Map<String, Map<String, dynamic>>>{};
   final deployments = <String, Map<String, dynamic>>{};
   final requests = <NetworkRequest>[];
+  final servers = <Map<String, dynamic>>[
+    {'uuid': 'server', 'name': 'Projects'},
+  ];
+  final destinations = <String, List<Map<String, dynamic>>>{
+    'server': [
+      {'uuid': 'destination', 'name': 'coolify'},
+    ],
+  };
   String? loseCreationPath;
   String? failVariableKey;
   bool failCompletedImport = false;
@@ -60,14 +68,12 @@ class FakeCoolifyNetwork extends NetworkService {
     }
     if (method == HttpMethod.get) {
       if (path == 'servers') {
-        return response([
-          {'uuid': 'server', 'name': 'Projects'},
-        ]);
+        return response(servers);
       }
-      if (path == 'servers/server/destinations') {
-        return response([
-          {'uuid': 'destination', 'name': 'coolify'},
-        ]);
+      if (parts.length == 3 &&
+          parts.first == 'servers' &&
+          parts.last == 'destinations') {
+        return response(destinations[parts[1]] ?? []);
       }
       if (path == 'github-apps') {
         return response([

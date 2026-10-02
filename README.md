@@ -28,13 +28,13 @@ tug context add home \
 tug context use home
 ```
 
-Run `tug context add` to be prompted for all missing values, including the context name. Supplied arguments skip their prompts. Domain prompts default to `auto`; unattended invocations also use that default. Replacing an existing context still requires `--force`.
+Run `tug context add` to be prompted for all missing values, including the context name. Supplied arguments skip their prompts. Server and destination defaults can be left blank to select them per checkout. Domain prompts default to `auto`; unattended invocations also use that default. Replacing an existing context still requires `--force`.
 
 Put the referenced token in the project-root `.env` file or your shell environment. Do not put its value in an argument. Omit `--token-env` to be prompted for the environment variable name, or leave that prompt blank to enter a token through an obscured prompt and save it globally. API access requires `read`, `read:sensitive`, `write` and `deploy` permissions.
 
 Global contexts use Grumpy's default configuration location (`~/Library/Application Support/tug/config.yaml` on macOS, XDG on Linux). The committed `coolify.yaml` contains portable app settings: layout, source, environments, branches, database requirements and variable/secret references. Connection profiles, selected context and public domains do not belong in that manifest.
 
-Each checkout stores its context selection, domain names and any connection overrides in **`.coolify/local.yaml`**, which Tug gitignores along with its state cache and `.env` files. Missing selections are prompted for, including server, destination and GitHub App when a global context omits them. An explicit `--context` takes precedence over the saved selection. On first use, interactive commands offer global contexts; unattended commands can use the global current context, but fail clearly if other required settings are missing. No compatibility/migration layer is provided for the old manifest format.
+Each checkout stores its context selection, domain names and any connection overrides in **`.coolify/local.yaml`**, which Tug gitignores along with its state cache and `.env` files. On first interactive use of a checkout, Tug lists the instance's servers and asks where to deploy, even when the global context has a default server. It then lists destinations belonging to that server and saves both choices privately. Later commands reuse and display the saved target. Use `tug plan --select-server` to choose again; changing a selection does not move existing resources. Missing GitHub App settings are also prompted for. An explicit `--context` takes precedence over the saved selection. On first use, interactive commands offer global contexts; unattended commands can use the global current context and explicitly configured server/destination defaults, but fail clearly if required settings are missing. `--select-server` requires interactive selection. No compatibility/migration layer is provided for the old manifest format.
 
 Example private settings (never commit this file):
 

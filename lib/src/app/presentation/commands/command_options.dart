@@ -28,6 +28,11 @@ abstract final class CommandOptions {
     type: CliValueType.string(),
     description: 'Coolify context override.',
   );
+  static final selectServer = CliFlag(
+    'select-server',
+    negatable: false,
+    description: 'Choose the server and destination for this checkout again.',
+  );
   static final environment = CliOption(
     'environment',
     type: CliValueType.string(),

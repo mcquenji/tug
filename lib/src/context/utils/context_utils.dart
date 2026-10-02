@@ -45,6 +45,9 @@ Future<CoolifyContext> resolveCoolifyContext(
       'Selected context does not exist. Choose a global context with --context or edit .coolify/local.yaml.',
     );
   }
+  final reselectServer = c.args.require(CommandOptions.selectServer);
+  final savedServer = settings.contexts[selected]?.server ?? '';
+  final chooseServer = reselectServer || savedServer.isEmpty;
   if (connection.token != null && connection.tokenEnv != null) {
     throw const TugException('A context must use token or tokenEnv, not both.');
   }
@@ -77,8 +80,9 @@ Future<CoolifyContext> resolveCoolifyContext(
     String label,
     CoolifyOperation operation, {
     String? parent,
+    bool choose = false,
   }) async {
-    if (value.isNotEmpty || !requireInfrastructure) return value;
+    if (!requireInfrastructure || value.isNotEmpty && !choose) return value;
     final options = await c.terminal.task(
       'Load available $label',
       () => (remote ?? CoolifyDatasource()).list(operation, uuid: parent),
@@ -93,6 +97,8 @@ Future<CoolifyContext> resolveCoolifyContext(
       choices: [
         for (final r in options) PromptChoice('${r.name} (${r.uuid})', r.uuid),
       ],
+      defaultValue: options.any((r) => r.uuid == value) ? value : null,
+      allowDefaultNonInteractive: !reselectServer,
     );
   }
 
@@ -100,19 +106,22 @@ Future<CoolifyContext> resolveCoolifyContext(
     connection.server,
     'server',
     CoolifyOperation.servers,
+    choose: chooseServer,
   );
   final destination = await resource(
-    connection.destination,
+    server == connection.server ? connection.destination : '',
     'destination',
     CoolifyOperation.destinations,
     parent: server,
+    choose: chooseServer,
   );
   final githubApp = await resource(
     connection.githubApp,
     'GitHub App',
     CoolifyOperation.githubApps,
   );
-  if (server != connection.server ||
+  if (requireInfrastructure && chooseServer ||
+      server != connection.server ||
       destination != connection.destination ||
       githubApp != connection.githubApp) {
     settings.values['contexts'] = AppConfig.settings.contexts.type.encode({
@@ -156,6 +165,11 @@ Future<CoolifyContext> resolveCoolifyContext(
     settings.setDomains(name, resolved);
   }
   await settings.save();
+  if (requireInfrastructure) {
+    c.terminal.writeln(
+      'Deployment target: $selected (${connection.url}) · server $server · destination $destination',
+    );
+  }
   c.terminal.detail('Context $selected · ${connection.url}');
   return CoolifyContext(
     url: connection.url,

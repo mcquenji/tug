@@ -25,12 +25,14 @@ class CoolifyContext extends Model {
   /// tokenEnv or token.
   final String? tokenEnv;
 
-  /// Coolify server UUID. When empty, deployment commands prompt for a server
-  /// and save the choice in .coolify/local.yaml.
+  /// Default Coolify server UUID. Interactive deployment commands confirm the
+  /// server on first use of each checkout and save it in .coolify/local.yaml.
+  /// Use --select-server to choose again. Unattended commands may use this default.
   final String server;
 
-  /// Coolify destination UUID on the selected server. When empty, deployment
-  /// commands prompt for a destination and save it in .coolify/local.yaml.
+  /// Default Coolify destination UUID. Selecting a server also selects one of
+  /// its destinations; a different server does not inherit this destination.
+  /// The checkout's choice is saved in .coolify/local.yaml.
   final String destination;
 
   /// Coolify GitHub App identifier used to access the repository. When empty,

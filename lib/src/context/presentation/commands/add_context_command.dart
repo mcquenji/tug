@@ -64,10 +64,15 @@ class AddContextCommand extends TugCommand {
       url: address,
       token: secret,
       tokenEnv: ref,
-      server: await setting(CommandOptions.server, 'Server UUID'),
+      server: await setting(
+        CommandOptions.server,
+        'Default server UUID (leave blank to select per checkout)',
+        defaultValue: '',
+      ),
       destination: await setting(
         CommandOptions.destination,
-        'Destination UUID',
+        'Default destination UUID (leave blank to select per checkout)',
+        defaultValue: '',
       ),
       githubApp: await setting(CommandOptions.githubApp, 'GitHub App UUID'),
       domains: {
