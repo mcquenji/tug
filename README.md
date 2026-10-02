@@ -2,6 +2,14 @@
 
 Tug provisions Serverpod 4 monorepos on Coolify: one application and private PostgreSQL per named environment, with optional Redis. Coolify builds the committed source and stores the runtime configuration.
 
+## Install with Homebrew
+
+```sh
+brew install mcquenji/tap/tug
+```
+
+macOS and Linux releases install through the tap. Windows x64 binaries are available from [GitHub Releases](https://github.com/mcquenji/tug/releases). See [release and installation instructions](docs/releases.md) for supported systems, upgrades, and publishing version tags.
+
 ## Build and run
 
 Tug resolves the Grumpy packages from their `mcquenji` GitHub repositories. The committed `pubspec.lock` pins their resolved revisions; sibling checkouts and local dependency overrides are not required.
