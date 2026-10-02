@@ -7,6 +7,10 @@ abstract class TugCommand extends CliCommand {
 
   @override
   Future<CommandResult> execute(CommandContext context) async {
+    if (context.args.require(CommandOptions.version)) {
+      context.terminal.writeln('tug ${App.buildVersion}');
+      return CommandResult.success;
+    }
     await validateConfiguration(context);
     warnLocalSensitiveValues(context);
     await run(context, AppConfig());

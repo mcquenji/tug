@@ -2,6 +2,11 @@ import 'package:grumpy_cli/grumpy_cli.dart';
 
 /// Shared argument handles used by feature command declarations.
 abstract final class CommandOptions {
+  static final version = CliFlag(
+    'version',
+    negatable: false,
+    description: 'Print the version embedded at build time.',
+  );
   static final context = CliOption(
     'context',
     type: CliValueType.string(),

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:grumpy_cli/grumpy_cli.dart';
+import 'package:tug/gen/version.g.dart';
 import 'package:tug/src/configuration/configuration.dart';
 import 'package:tug/src/context/context.dart';
 import 'package:tug/src/environment/environment.dart';
@@ -21,6 +22,22 @@ class App extends CliApp<AppConfig> {
     : super(AppConfig.defaults(), terminal: terminal ?? SafeTerminalService());
 
   final ConfigFiles? files;
+
+  static const buildVersion = String.fromEnvironment(
+    'TUG_VERSION',
+    defaultValue: pubspecVersion,
+  );
+
+  @override
+  Future<int> run(List<String> arguments) async {
+    if (arguments.length == 1 && arguments.single == '--version') {
+      terminal.writeln('tug $buildVersion');
+      await terminal.flush();
+      await releasePreflight();
+      return 0;
+    }
+    return super.run(arguments);
+  }
 
   @override
   String get executableName => 'tug';
@@ -47,8 +64,12 @@ class App extends CliApp<AppConfig> {
       );
 
   @override
-  ArgumentSchema get arguments =>
-      ArgumentSchema(arguments: [CommandOptions.context]);
+  ArgumentSchema get arguments => ArgumentSchema(
+    arguments: [
+      CommandOptions.context,
+      CommandOptions.version,
+    ],
+  );
 
   @override
   List<Module<CliCommand, AppConfig>> get imports => [Reconcile()];

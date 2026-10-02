@@ -39,6 +39,19 @@ void main() {
     expect(result.exitCode, 0, reason: '${result.stderr}');
   }
 
+  test(
+    'version needs neither configuration nor a pubspec on the target system',
+    () async {
+      await File(config.local.path).writeAsString('invalid: [private-secret');
+      await File(config.global.path).writeAsString('invalid: [private-secret');
+      final terminal = await invoke(['--version']);
+      final pubspec =
+          loadYaml(await File('pubspec.yaml').readAsString()) as Map;
+      expect(terminal.output.toString(), 'tug ${pubspec['version']}\n');
+      expect(terminal.errors.toString(), isEmpty);
+    },
+  );
+
   Future<void> projectFile(String name, String content) async {
     final file = File('${temp.path}/local/$name');
     await file.parent.create(recursive: true);

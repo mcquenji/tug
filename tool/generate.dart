@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:yaml/yaml.dart';
+
 /// Regenerate canonical schemas, documentation and the compiled offline copy.
 Future<void> main(List<String> args) async {
   final check = args.contains('--check');
@@ -12,6 +14,7 @@ Future<void> main(List<String> args) async {
     'schemas/v1/local.schema.json',
     'lib/gen/schemas.g.dart',
     'docs/configuration.md',
+    'lib/gen/version.g.dart',
   ];
   final before = {
     for (final name in generated)
@@ -30,6 +33,10 @@ Future<void> main(List<String> args) async {
   }
 
   await run(['run', 'build_runner', 'build']);
+  final pubspec = loadYaml(await File('pubspec.yaml').readAsString()) as Map;
+  File('lib/gen/version.g.dart').writeAsStringSync(
+    '// GENERATED CODE - DO NOT MODIFY BY HAND.\nconst String pubspecVersion = ${jsonEncode(pubspec['version']).replaceAll(r'$', r'\$')};\n',
+  );
   final schema = File('schemas/v1/config.schema.json').readAsStringSync();
   final canonical = jsonDecode(schema) as Map<String, dynamic>;
   for (final scope in ['coolify', 'global', 'local']) {
@@ -53,6 +60,7 @@ Future<void> main(List<String> args) async {
     'format',
     'lib/src/app/domain/models/app_config.g.dart',
     embedded.path,
+    'lib/gen/version.g.dart',
   ]);
   if (check) {
     final stale = generated
