@@ -39,10 +39,7 @@ class DefaultReconcileService extends ReconcileService {
   String _marker(DeploymentSpec s) =>
       'managed-by=tug,app=${s.config.name},repository=${_identity(s)}';
   bool _hasProjectMarker(RemoteResource project, DeploymentSpec s) =>
-      project.description.contains(_marker(s)) ||
-      project.description.contains(
-        'managed-by:tug;app:${s.config.name};repository:${_identity(s)}',
-      );
+      project.description.contains(_marker(s));
   List<String> _tags(DeploymentSpec s, String env) => [
     'managed-by:tug',
     'tug-app:${s.config.name}',
@@ -172,8 +169,15 @@ class DefaultReconcileService extends ReconcileService {
     );
     if (project != null &&
         (!_hasProjectMarker(project, s) || project.name != s.config.name)) {
-      throw const TugException(
-        'Project ownership or repository identity differs; refusing to adopt it.',
+      final reason = project.name != s.config.name
+          ? 'its name differs from the configured app name ${jsonEncode(s.config.name)}'
+          : 'its description does not contain the expected Tug app/repository marker';
+      throw TugException(
+        'Coolify at ${s.context.url} returned project ${jsonEncode(project.name)} '
+        '(UUID ${project.uuid}), but $reason. Refusing to adopt it. '
+        'Expected marker: ${_marker(s)}. '
+        'Check the selected Coolify instance and API token team if you deleted this project; '
+        'this result came from the API, not the local state cache.',
       );
     }
     return project;

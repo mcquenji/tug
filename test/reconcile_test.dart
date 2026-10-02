@@ -135,23 +135,68 @@ environments:
     },
   );
 
+  test('foreign repository markers are refused', () async {
+    await engine.apply(spec, environment: 'production');
+    final project = fake.projects.values.single;
+    final writes = fake.mutations.length;
+    project['description'] = 'managed-by=tug,app=demo,repository=foreign';
+    await expectLater(
+      engine.apply(spec, environment: 'production'),
+      throwsA(isA<TugException>()),
+    );
+    expect(fake.mutations.length, writes);
+  });
+
   test(
-    'legacy project markers remain owned but foreign repositories do not',
+    'deleted remote resources are recreated despite stale local state',
     () async {
       await engine.apply(spec, environment: 'production');
-      final project = fake.projects.values.single;
-      project['description'] = (project['description'] as String)
-          .replaceAll('=', ':')
-          .replaceAll(',', ';');
+      final previous = await workspace.readState(spec.layout.root);
+      fake.projects.clear();
+      fake.environments.clear();
+      fake.resources.clear();
+      fake.variables.clear();
+      fake.deployments.clear();
       final writes = fake.mutations.length;
-      await engine.apply(spec, environment: 'production');
+      await engine.apply(spec, environment: 'production', plan: true);
       expect(fake.mutations.length, writes);
-      project['description'] = 'managed-by:tug;app:demo;repository:foreign';
+      expect(terminal.output.toString(), contains('Create project demo.'));
+      await engine.apply(spec, environment: 'production');
+      final current = await workspace.readState(spec.layout.root);
+      expect(current['project'], isNot(previous['project']));
+      expect(fake.projects, hasLength(1));
+      expect(fake.resources, hasLength(3));
+      final recreatedWrites = fake.mutations.length;
+      await engine.apply(spec, environment: 'production');
+      expect(fake.mutations.length, recreatedWrites);
+    },
+  );
+
+  test(
+    'project conflict identifies the API project and expected marker',
+    () async {
+      fake.projects['foreign-project'] = {
+        'uuid': 'foreign-project',
+        'name': 'demo',
+        'description': 'Do not print this private description',
+      };
       await expectLater(
         engine.apply(spec, environment: 'production'),
-        throwsA(isA<TugException>()),
+        throwsA(
+          predicate((e) {
+            final message = e.toString();
+            return e is TugException &&
+                message.contains('https://coolify.example.com') &&
+                message.contains('foreign-project') &&
+                message.contains(
+                  'Expected marker: managed-by=tug,app=demo,repository=',
+                ) &&
+                message.contains('API, not the local state cache') &&
+                !message.contains('private description');
+          }),
+        ),
       );
-      expect(fake.mutations.length, writes);
+      expect(fake.mutations, isEmpty);
     },
   );
 
