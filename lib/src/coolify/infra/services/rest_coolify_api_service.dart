@@ -12,10 +12,12 @@ class RestCoolifyApiService extends CoolifyApiService {
     this.network,
     this.cancellation, {
     Future<void> Function(Duration)? delay,
+    this.terminal,
   }) : _delay = delay ?? Future<void>.delayed,
        super.internal();
   final NetworkService network;
   final CancellationToken cancellation;
+  final TerminalService? terminal;
   final Future<void> Function(Duration) _delay;
   Uri? _base;
   String? _token;
@@ -129,6 +131,7 @@ class RestCoolifyApiService extends CoolifyApiService {
       CoolifyOperation.logs => (HttpMethod.get, 'applications/$id/logs'),
     };
     final payload = _payload(operation, values, uuid);
+    terminal?.detail('Coolify ${method.name.toUpperCase()} $path');
     final request = NetworkRequest(
       method: method,
       uri: _base!.resolve(path),

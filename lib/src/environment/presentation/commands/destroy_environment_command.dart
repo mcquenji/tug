@@ -14,11 +14,14 @@ class DestroyEnvironmentCommand extends DeploymentCommand {
   );
   @override
   Future<void> reconcile(CommandContext c, DeploymentSpec spec) async {
-    await ReconcileService().destroyDeployment(
-      spec,
-      environment: c.args.require(CommandOptions.name),
-      destroyData: c.args.require(CommandOptions.destroyData),
-      confirm: () => confirmDestruction(c),
+    await c.terminal.task(
+      'Destroy managed environment',
+      () => ReconcileService().destroyDeployment(
+        spec,
+        environment: c.args.require(CommandOptions.name),
+        destroyData: c.args.require(CommandOptions.destroyData),
+        confirm: () => confirmDestruction(c),
+      ),
     );
   }
 }

@@ -7,6 +7,16 @@ abstract final class CommandOptions {
     negatable: false,
     description: 'Print the version embedded at build time.',
   );
+  static final color = CliFlag(
+    'color',
+    defaultValue: true,
+    description: 'Use terminal colors when supported.',
+  );
+  static final verbose = CliFlag(
+    'verbose',
+    negatable: false,
+    description: 'Show detailed progress diagnostics.',
+  );
   static final context = CliOption(
     'context',
     type: CliValueType.string(),

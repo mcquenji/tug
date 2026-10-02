@@ -10,10 +10,13 @@ class DestroyCommand extends DeploymentCommand {
   );
   @override
   Future<void> reconcile(CommandContext c, DeploymentSpec spec) async {
-    await ReconcileService().destroyDeployment(
-      spec,
-      destroyData: c.args.require(CommandOptions.destroyData),
-      confirm: () => confirmDestruction(c),
+    await c.terminal.task(
+      'Destroy managed deployment',
+      () => ReconcileService().destroyDeployment(
+        spec,
+        destroyData: c.args.require(CommandOptions.destroyData),
+        confirm: () => confirmDestruction(c),
+      ),
     );
   }
 }

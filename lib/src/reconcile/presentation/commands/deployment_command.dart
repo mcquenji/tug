@@ -12,9 +12,9 @@ abstract class DeploymentCommand extends TugCommand {
 
   @override
   Future<void> run(CommandContext context, AppConfig config) async {
-    final layout = await WorkspaceService().inspect(
-      projectDirectory(context),
-      config,
+    final layout = await context.terminal.task(
+      'Inspect workspace',
+      () => WorkspaceService().inspect(projectDirectory(context), config),
     );
     final connection = resolveCoolifyContext(context, config);
     await reconcile(

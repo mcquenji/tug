@@ -30,6 +30,9 @@ class App extends CliApp<AppConfig> {
 
   @override
   Future<int> run(List<String> arguments) async {
+    if (terminal case SafeTerminalService output) {
+      output.colorEnabled = !arguments.contains('--no-color');
+    }
     if (arguments.length == 1 && arguments.single == '--version') {
       terminal.writeln('tug $buildVersion');
       await terminal.flush();
@@ -68,6 +71,8 @@ class App extends CliApp<AppConfig> {
     arguments: [
       CommandOptions.context,
       CommandOptions.version,
+      CommandOptions.color,
+      CommandOptions.verbose,
     ],
   );
 

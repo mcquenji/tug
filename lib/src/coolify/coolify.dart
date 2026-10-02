@@ -22,6 +22,7 @@ class Coolify extends Module<CliCommand, AppConfig> {
       (_, resolve) => RestCoolifyApiService(
         resolve<NetworkService>(),
         resolve<CancellationToken>(),
+        terminal: resolve<TerminalService>(),
       ),
     );
   }

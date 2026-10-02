@@ -519,9 +519,15 @@ class DefaultReconcileService extends ReconcileService {
         }
       }
     }
-    await workspace.generate(s.layout, check: true);
-    await _infrastructure(s);
-    var project = await _project(s);
+    await terminal.task(
+      'Validate deployment build files',
+      () => workspace.generate(s.layout, check: true),
+    );
+    await terminal.task(
+      'Check Coolify infrastructure',
+      () => _infrastructure(s),
+    );
+    var project = await terminal.task('Discover project', () => _project(s));
     final snapshots = <EnvironmentSnapshot>[];
     for (final name in selected) {
       snapshots.add(
@@ -553,7 +559,7 @@ class DefaultReconcileService extends ReconcileService {
         uuid: project.uuid,
       )) {
         if (!s.config.environments.containsKey(env.name)) {
-          terminal.errorln(
+          terminal.warning(
             'Orphaned environment ${env.name}; no automatic deletion.',
           );
         }
@@ -581,17 +587,20 @@ class DefaultReconcileService extends ReconcileService {
     for (final e in snapshots) {
       try {
         changed =
-            await _applyEnvironment(
-              s,
-              project,
-              e,
-              plan: plan,
-              sync: sync,
-              wait: wait,
+            await terminal.task(
+              '${e.name}: reconcile resources',
+              () => _applyEnvironment(
+                s,
+                project,
+                e,
+                plan: plan,
+                sync: sync,
+                wait: wait,
+              ),
             ) ||
             changed;
       } on TugException catch (error) {
-        terminal.errorln('${e.name}: ${error.message}');
+        terminal.failure('${e.name}: ${error.message}');
         failures.add(e.name);
       }
     }
@@ -600,7 +609,7 @@ class DefaultReconcileService extends ReconcileService {
         'Failed environments: ${failures.join(', ')}. Successful progress is preserved; rerun apply after fixing the issue.',
       );
     }
-    if (!changed) terminal.writeln('No changes.');
+    if (!changed) terminal.success('No changes.');
   }
 
   Future<bool> _applyEnvironment(
@@ -725,7 +734,7 @@ class DefaultReconcileService extends ReconcileService {
     if (_redis(s, e.name)) {
       e.redis = await database('redis', e.redis);
     } else if (e.redis != null) {
-      terminal.errorln('${e.name}: orphaned Redis; no automatic deletion.');
+      terminal.warning('${e.name}: orphaned Redis; no automatic deletion.');
     }
     final fields = <String, Object?>{
       'name': _resourceName(s, e.name, 'application'),

@@ -11,10 +11,13 @@ class GenerateCommand extends TugCommand {
   Future<void> run(CommandContext c, AppConfig config) async {
     final workspace = WorkspaceService();
     final layout = await workspace.inspect(projectDirectory(c), config);
-    await workspace.generate(
-      layout,
-      replace: c.args.require(CommandOptions.force),
+    await c.terminal.task(
+      'Generate deployment build files',
+      () => workspace.generate(
+        layout,
+        replace: c.args.require(CommandOptions.force),
+      ),
     );
-    c.terminal.writeln('Generated deployment files. Review and commit them.');
+    c.terminal.success('Generated deployment files. Review and commit them.');
   }
 }
