@@ -26,9 +26,10 @@ Future<void> main(List<String> args) async {
       '-DTUG_VERSION=$version',
       'bin/tug.dart',
       '-o',
-      'build/tug',
+      Platform.isWindows ? 'build/tug.exe' : 'build/tug',
     ],
     workingDirectory: root.path,
+    runInShell: Platform.isWindows,
     mode: ProcessStartMode.inheritStdio,
   );
   exitCode = await process.exitCode;

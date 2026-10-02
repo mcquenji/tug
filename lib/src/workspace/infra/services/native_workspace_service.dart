@@ -56,10 +56,14 @@ class NativeWorkspaceService extends WorkspaceService {
         final yaml = await _yaml(file.path);
         final deps = yaml['dependencies'];
         if (deps is Map && deps.containsKey('serverpod')) {
-          servers.add(p.relative(dir.path, from: root));
+          servers.add(
+            p.relative(dir.path, from: root).replaceAll(p.separator, '/'),
+          );
         }
         if (deps is Map && deps.containsKey('flutter')) {
-          flutters.add(p.relative(dir.path, from: root));
+          flutters.add(
+            p.relative(dir.path, from: root).replaceAll(p.separator, '/'),
+          );
         }
       }
       if (depth == 0) return;
@@ -174,11 +178,12 @@ class NativeWorkspaceService extends WorkspaceService {
           'Run tug generate and commit the generated deployment files.',
         );
       }
-      final result = await Process.run('fvm', [
-        'flutter',
-        '--version',
-        '--machine',
-      ], workingDirectory: layout.root);
+      final result = await Process.run(
+        'fvm',
+        ['flutter', '--version', '--machine'],
+        workingDirectory: layout.root,
+        runInShell: Platform.isWindows,
+      );
       if (result.exitCode != 0) {
         throw const TugException(
           'Cannot resolve Flutter toolchain using fvm flutter.',
@@ -192,11 +197,12 @@ class NativeWorkspaceService extends WorkspaceService {
       };
     }
     if (versions['flutterRevision'] == null && !check) {
-      final result = await Process.run('fvm', [
-        'flutter',
-        '--version',
-        '--machine',
-      ], workingDirectory: layout.root);
+      final result = await Process.run(
+        'fvm',
+        ['flutter', '--version', '--machine'],
+        workingDirectory: layout.root,
+        runInShell: Platform.isWindows,
+      );
       if (result.exitCode != 0) {
         throw const TugException('Cannot resolve Flutter revision using FVM.');
       }

@@ -21,10 +21,12 @@ Future<void> main(List<String> args) async {
       name: File(name).existsSync() ? File(name).readAsStringSync() : null,
   };
   Future<void> run(List<String> arguments) async {
-    final process = await Process.start('fvm', [
-      'dart',
-      ...arguments,
-    ], mode: ProcessStartMode.inheritStdio);
+    final process = await Process.start(
+      'fvm',
+      ['dart', ...arguments],
+      mode: ProcessStartMode.inheritStdio,
+      runInShell: Platform.isWindows,
+    );
     final result = await process.exitCode;
     if (result != 0) {
       exitCode = result;
