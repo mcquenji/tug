@@ -18,6 +18,10 @@
         {
             "filename": "pubspec.yaml",
             "type": "yaml"
+        },
+        {
+            "filename": "lib/gen/version.g.dart",
+            "updater": "tool/version_updater.cjs"
         }
     ],
     "packageFiles": [
