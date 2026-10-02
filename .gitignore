@@ -10,3 +10,5 @@ coverage/
 .coolify/local.yaml.tmp
 .coolify/state.json.tmp
 pubspec_overrides.yaml
+dist/
+__pycache__/

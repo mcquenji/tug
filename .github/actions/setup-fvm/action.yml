@@ -1,0 +1,20 @@
+name: Set up FVM
+description: Install checksum-verified FVM and the project Flutter SDK.
+runs:
+  using: composite
+  steps:
+    - name: Install FVM
+      shell: bash
+      run: python tool/setup_fvm.py
+    - name: Cache SDK and package downloads
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cache/tug-fvm
+          ~/.cache/tug-pub
+        key: fvm-4.3.1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.fvmrc', 'pubspec.lock') }}
+    - name: Install project SDK and dependencies
+      shell: bash
+      run: |
+        fvm install
+        fvm dart pub get --enforce-lockfile
