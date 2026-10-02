@@ -39,6 +39,29 @@ Future<void> main(List<String> args) async {
   );
   final schema = File('schemas/v1/config.schema.json').readAsStringSync();
   final canonical = jsonDecode(schema) as Map<String, dynamic>;
+  // Global connection profiles must never be suggested or accepted in the shared manifest.
+  final local = (canonical[r'$defs'] as Map)['local'] as Map;
+  for (final key in ['contexts', 'currentContext']) {
+    (local['properties'] as Map).remove(key);
+  }
+  final docs = File('docs/configuration.md');
+  final sections = docs.readAsStringSync().split('## Local');
+  if (sections.length == 2) {
+    final shared = sections[1]
+        .split('\n')
+        .where(
+          (line) =>
+              !line.startsWith('| `contexts`') &&
+              !line.startsWith('| `currentContext`'),
+        )
+        .join('\n');
+    docs.writeAsStringSync(
+      '${sections[0].replaceFirst('Local values override global values. Declared defaults apply last.', 'Global connections are separate from the shared manifest. Per-checkout context selection, domains and connection overrides live in gitignored `.coolify/local.yaml`; see README.md.')}## Local$shared',
+    );
+  }
+  File('schemas/v1/config.schema.json').writeAsStringSync(
+    '${const JsonEncoder.withIndent('  ').convert(canonical)}\n',
+  );
   for (final scope in ['coolify', 'global', 'local']) {
     final wrapper = {
       r'$schema': 'https://json-schema.org/draft/2020-12/schema',

@@ -43,9 +43,9 @@ serverpod: {server: server, flutter: flutter}
 redis: {enabled: true}
 environments:
   production:
-    domains: {web: test.example.com, api: api-test.example.com}
+    branch: main
   staging:
-    domains: {web: staging.example.com, api: api-staging.example.com}
+    branch: main
 ''',
     );
     final config = AppConfig.defaults().resolveConfig(configService);
@@ -54,6 +54,16 @@ environments:
       server: 'server',
       destination: 'destination',
       githubApp: 'github',
+      domains: {
+        'production': DomainConfig(
+          web: 'test.example.com',
+          api: 'api-test.example.com',
+        ),
+        'staging': DomainConfig(
+          web: 'staging.example.com',
+          api: 'api-staging.example.com',
+        ),
+      },
     );
     final layout = ProjectLayout(
       root: '${temp.path}/local',
@@ -99,14 +109,9 @@ environments:
     Map<String, SecretReference> secrets = const {},
     Map<String, String> process = const {},
   }) async {
-    final old = spec.config.environments['production']!;
     await configService.local.set(AppConfig.settings.environments, {
       ...spec.config.environments,
-      'production': EnvironmentConfig(
-        domains: old.domains,
-        env: env,
-        secrets: secrets,
-      ),
+      'production': EnvironmentConfig(env: env, secrets: secrets),
     });
     spec = DeploymentSpec(
       AppConfig.defaults().resolveConfig(configService),

@@ -26,7 +26,7 @@ Future<void> validateConfiguration(CommandContext context) async {
   }
 }
 
-/// Warn once per local sensitive field, including inactive connection profiles.
+/// Warn once per inline secret in the shared manifest.
 void warnLocalSensitiveValues(CommandContext c) {
   final scope = c.config.local;
   final seen = <String>{};
@@ -38,21 +38,6 @@ void warnLocalSensitiveValues(CommandContext c) {
     }
   }
 
-  for (final entry
-      in (scope.get(AppConfig.settings.contexts) ?? <String, CoolifyContext>{})
-          .entries) {
-    final url = Uri.tryParse(entry.value.url);
-    if (url != null &&
-        (url.userInfo.isNotEmpty || url.hasQuery || url.hasFragment)) {
-      warn('contexts.${entry.key}.url');
-    }
-    if (entry.value.token?.isNotEmpty ?? false) {
-      warn('contexts.${entry.key}.token');
-    }
-    if (c.terminal is SafeTerminalService && entry.value.token != null) {
-      (c.terminal as SafeTerminalService).secrets.add(entry.value.token!);
-    }
-  }
   for (final entry
       in (scope.get(AppConfig.settings.environments) ??
               <String, EnvironmentConfig>{})

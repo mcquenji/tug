@@ -71,6 +71,7 @@ class App extends CliApp<AppConfig> {
     arguments: [
       CommandOptions.context,
       CommandOptions.version,
+      CommandOptions.envFile,
       CommandOptions.color,
       CommandOptions.verbose,
     ],

@@ -259,13 +259,7 @@ class NativeWorkspaceService extends WorkspaceService {
       await file.parent.create(recursive: true);
       await file.writeAsString(entry.value);
     }
-    final ignore = File(p.join(layout.root, '.gitignore'));
-    final previous = await ignore.exists() ? await ignore.readAsString() : '';
-    if (!previous.split('\n').contains('/.coolify/state.json')) {
-      await ignore.writeAsString(
-        '$previous\n# Tug local cache\n/.coolify/state.json\n/.coolify/state.json.tmp\n',
-      );
-    }
+    await ensurePrivateIgnores(layout.root);
   }
 
   static String dockerExclusions(String server) =>
@@ -297,6 +291,7 @@ class NativeWorkspaceService extends WorkspaceService {
 **/*service_account*.json
 **/secrets.*
 coolify.yaml
+.coolify/local.yaml*
 .coolify/state.json*
 ''';
 

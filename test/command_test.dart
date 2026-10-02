@@ -52,6 +52,21 @@ void main() {
     },
   );
 
+  test(
+    'no-env-file skips a malformed dotenv without affecting command routing',
+    () async {
+      await File('${temp.path}/local/.env')
+          .writeAsString('secret invalid syntax');
+      final failure = await invoke(['context', 'list'], code: 1);
+      expect(failure.errors.toString(), contains('Invalid .env entry'));
+      expect(
+        failure.errors.toString(),
+        isNot(contains('secret invalid syntax')),
+      );
+      await invoke(['context', 'list', '--no-env-file']);
+    },
+  );
+
   Future<void> projectFile(String name, String content) async {
     final file = File('${temp.path}/local/$name');
     await file.parent.create(recursive: true);
@@ -260,6 +275,22 @@ void main() {
     expect(environments['staging']['configMode'], 'development');
     final dockerfile = File('$root/.coolify/Dockerfile');
     final generated = await dockerfile.readAsString();
+    expect(local.containsKey('context'), isFalse);
+    expect((local['source'] as Map)['repository'], 'auto');
+    expect((environments['production'] as Map).containsKey('domains'), isFalse);
+    final private = await DeploymentSettings.load(root);
+    expect(private.domains['production']!.web, 'web.example.com');
+    expect(
+      await File('$root/.gitignore').readAsString(),
+      contains('/.coolify/local.yaml'),
+    );
+    final ignored = await Process.run('git', [
+      '-C',
+      root,
+      'check-ignore',
+      '.coolify/local.yaml',
+    ]);
+    expect(ignored.exitCode, 0);
     await invoke(['generate']);
     expect(await dockerfile.readAsString(), generated);
     expect(await File(config.global.path).readAsString(), globalBefore);

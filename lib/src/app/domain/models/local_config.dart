@@ -12,7 +12,6 @@ class LocalConfig extends Model {
   const LocalConfig({
     this.version = 1,
     this.name,
-    this.context,
     this.source = const SourceConfig(),
     this.serverpod,
     this.database = const DatabaseConfig(),
@@ -27,11 +26,19 @@ class LocalConfig extends Model {
   /// Stable project name used to identify managed resources.
   final String? name;
 
-  /// Optional reference to a globally configured context.
-  final String? context;
+  /// Git repository shared by all deployment environments.
   final SourceConfig source;
+
+  /// Serverpod and Flutter package paths and build options. Omit to discover
+  /// the packages automatically and use the default build options.
   final ServerpodConfig? serverpod;
+
+  /// PostgreSQL engine and major version for newly created databases.
   final DatabaseConfig database;
+
+  /// Default Redis setting for all environments; individual environments can override it.
   final RedisConfig redis;
+
+  /// Named, isolated deployments with their own branches, databases and runtime settings.
   final Map<String, EnvironmentConfig> environments;
 }

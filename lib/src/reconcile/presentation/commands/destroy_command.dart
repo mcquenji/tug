@@ -5,6 +5,10 @@ import 'package:tug/src/reconcile/reconcile.dart';
 class DestroyCommand extends DeploymentCommand {
   const DestroyCommand();
   @override
+  bool get needsInfrastructure => false;
+  @override
+  bool get needsDomains => false;
+  @override
   ArgumentSchema get arguments => ArgumentSchema(
     arguments: [CommandOptions.destroyData, CommandOptions.yes],
   );

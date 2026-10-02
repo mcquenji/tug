@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:grumpy_cli/grumpy_cli.dart';
 import 'package:tug/src/app/app.dart';
 import 'package:tug/src/context/context.dart';
@@ -9,6 +7,8 @@ import 'package:tug/src/workspace/workspace.dart';
 /// Resolves a verified workspace and context before invoking reconciliation.
 abstract class DeploymentCommand extends TugCommand {
   const DeploymentCommand();
+  bool get needsInfrastructure => true;
+  bool get needsDomains => true;
 
   @override
   Future<void> run(CommandContext context, AppConfig config) async {
@@ -16,10 +16,20 @@ abstract class DeploymentCommand extends TugCommand {
       'Inspect workspace',
       () => WorkspaceService().inspect(projectDirectory(context), config),
     );
-    final connection = resolveCoolifyContext(context, config);
+    final connection = await resolveCoolifyContext(
+      context,
+      config,
+      requireInfrastructure: needsInfrastructure,
+      requireDomains: needsDomains,
+    );
     await reconcile(
       context,
-      DeploymentSpec(config, connection, layout, Platform.environment),
+      DeploymentSpec(
+        config,
+        connection,
+        layout,
+        await commandEnvironment(context),
+      ),
     );
   }
 

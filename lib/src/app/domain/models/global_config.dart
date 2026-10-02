@@ -2,7 +2,7 @@ import 'package:grumpy_cli/grumpy_cli.dart';
 
 import 'coolify_context.dart';
 
-/// Defaults saved globally by Tug; local overrides follow Grumpy semantics.
+/// Connection profiles saved globally by Tug.
 @config
 class GlobalConfig extends Model {
   const GlobalConfig({this.currentContext, this.contexts = const {}});
@@ -10,6 +10,6 @@ class GlobalConfig extends Model {
   /// Default connection profile when no project or command selects one.
   final String? currentContext;
 
-  /// Named Coolify connections. Tokens are sensitive, including local overrides.
+  /// Named global Coolify connections; keep credentials out of the shared manifest.
   final Map<String, CoolifyContext> contexts;
 }

@@ -17,7 +17,6 @@ import "package:tug/src/app/domain/models/local_config.dart" as _c10;
 final class AppConfig extends CliConfig<AppConfig>
     implements _c9.GlobalConfig, _c10.LocalConfig {
   AppConfig._({
-    required this.context,
     required this.contexts,
     required this.currentContext,
     required this.database,
@@ -34,7 +33,6 @@ final class AppConfig extends CliConfig<AppConfig>
 
   /// Creates a snapshot using the defaults declared by your config models.
   factory AppConfig.defaults() => AppConfig._(
-    context: settings.context.defaultValue as String?,
     contexts: settings.contexts.defaultValue as Map<String, _c1.CoolifyContext>,
     currentContext: settings.currentContext.defaultValue as String?,
     database: settings.database.defaultValue as _c2.DatabaseConfig,
@@ -51,11 +49,7 @@ final class AppConfig extends CliConfig<AppConfig>
   /// Typed handles for explicit scope writes, provenance and shared value types.
   static final settings = AppConfigSettings();
 
-  /// Optional reference to a globally configured context.
-  @override
-  final String? context;
-
-  /// Named Coolify connections. Tokens are sensitive, including local overrides.
+  /// Named global Coolify connections; keep credentials out of the shared manifest.
   @override
   final Map<String, _c1.CoolifyContext> contexts;
 
@@ -63,11 +57,11 @@ final class AppConfig extends CliConfig<AppConfig>
   @override
   final String? currentContext;
 
-  ///
+  /// PostgreSQL engine and major version for newly created databases.
   @override
   final _c2.DatabaseConfig database;
 
-  ///
+  /// Named, isolated deployments with their own branches, databases and runtime settings.
   @override
   final Map<String, _c6.EnvironmentConfig> environments;
 
@@ -75,15 +69,16 @@ final class AppConfig extends CliConfig<AppConfig>
   @override
   final String? name;
 
-  ///
+  /// Default Redis setting for all environments; individual environments can override it.
   @override
   final _c4.RedisConfig redis;
 
-  ///
+  /// Serverpod and Flutter package paths and build options. Omit to discover
+  /// the packages automatically and use the default build options.
   @override
   final _c7.ServerpodConfig? serverpod;
 
-  ///
+  /// Git repository shared by all deployment environments.
   @override
   final _c8.SourceConfig source;
 
@@ -95,7 +90,6 @@ final class AppConfig extends CliConfig<AppConfig>
   static final _schema = ConfigSchema(
     global: [settings.contexts, settings.currentContext],
     local: [
-      settings.context,
       settings.database,
       settings.environments,
       settings.name,
@@ -111,7 +105,6 @@ final class AppConfig extends CliConfig<AppConfig>
 
   @override
   AppConfig resolveConfig(ConfigService service) => AppConfig._(
-    context: service.get(settings.context) as String?,
     contexts: service.get(settings.contexts) as Map<String, _c1.CoolifyContext>,
     currentContext: service.get(settings.currentContext) as String?,
     database: service.get(settings.database) as _c2.DatabaseConfig,
@@ -131,18 +124,7 @@ final class AppConfigSettings extends Model {
   /// Creates the generated settings collection.
   AppConfigSettings();
 
-  /// Optional reference to a globally configured context.
-  final context = ConfigSetting<String?>(
-    "context",
-    type: CliValueType.string().nullable(),
-    description: "Optional reference to a globally configured context.",
-    defaultValue: CliValueType.string().nullable().decode(null),
-    examples: [],
-    hasDefault: true,
-    deprecated: false,
-  );
-
-  /// Named Coolify connections. Tokens are sensitive, including local overrides.
+  /// Named global Coolify connections; keep credentials out of the shared manifest.
   final contexts = ConfigSetting<Map<String, _c1.CoolifyContext>>(
     "contexts",
     type: CliValueType.map(
@@ -169,8 +151,16 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
             }),
           ),
@@ -204,8 +194,16 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
             }),
           ).decode(json.containsKey("domains") ? json["domains"] : {}),
@@ -247,8 +245,16 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
             }),
           ).encode(value.domains),
@@ -260,28 +266,48 @@ final class AppConfigSettings extends Model {
         },
       ).constrained({
         "properties": {
-          "destination": {"type": "string", "description": "", "default": ""},
+          "destination": {
+            "type": "string",
+            "description": "Coolify destination UUID on the selected server. When empty, deployment\ncommands prompt for a destination and save it in .coolify/local.yaml.",
+            "default": "",
+          },
           "domains": {
             "type": "object",
             "additionalProperties": {
               "type": "object",
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
               "additionalProperties": false,
             },
-            "description": "",
+            "description": "Public web/API hostname templates keyed by environment name. The default\nentry supplies a fallback; .coolify/local.yaml overrides these per checkout.",
             "default": {},
           },
-          "githubApp": {"type": "string", "description": "", "default": ""},
-          "server": {"type": "string", "description": "", "default": ""},
+          "githubApp": {
+            "type": "string",
+            "description": "Coolify GitHub App identifier used to access the repository. When empty,\ndeployment commands prompt for an App and save it in .coolify/local.yaml.",
+            "default": "",
+          },
+          "server": {
+            "type": "string",
+            "description": "Coolify server UUID. When empty, deployment commands prompt for a server\nand save the choice in .coolify/local.yaml.",
+            "default": "",
+          },
           "token": {
             "anyOf": [
               {"type": "string"},
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Coolify API token stored in this private profile. Use either token or tokenEnv.",
             "default": null,
           },
           "tokenEnv": {
@@ -289,14 +315,18 @@ final class AppConfigSettings extends Model {
               {"type": "string"},
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Environment variable containing the Coolify API token. Read from the shell or\n.env unless --no-env-file is set; shell values take precedence. Use either\ntokenEnv or token.",
             "default": null,
           },
-          "url": {"type": "string", "description": "", "default": ""},
+          "url": {
+            "type": "string",
+            "description": "HTTPS base URL of the Coolify instance, for example https://coolify.example.com.",
+            "default": "",
+          },
         },
       }),
     ),
-    description: "Named Coolify connections. Tokens are sensitive, including local overrides.",
+    description: "Named global Coolify connections; keep credentials out of the shared manifest.",
     defaultValue: CliValueType.map(
       CliValueType.object<_c1.CoolifyContext>(
         properties: {
@@ -321,8 +351,16 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
             }),
           ),
@@ -356,8 +394,16 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
             }),
           ).decode(json.containsKey("domains") ? json["domains"] : {}),
@@ -399,8 +445,16 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
             }),
           ).encode(value.domains),
@@ -412,28 +466,48 @@ final class AppConfigSettings extends Model {
         },
       ).constrained({
         "properties": {
-          "destination": {"type": "string", "description": "", "default": ""},
+          "destination": {
+            "type": "string",
+            "description": "Coolify destination UUID on the selected server. When empty, deployment\ncommands prompt for a destination and save it in .coolify/local.yaml.",
+            "default": "",
+          },
           "domains": {
             "type": "object",
             "additionalProperties": {
               "type": "object",
               "properties": {
-                "api": {"type": "string", "description": "", "default": "auto"},
-                "web": {"type": "string", "description": "", "default": "auto"},
+                "api": {
+                  "type": "string",
+                  "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
+                "web": {
+                  "type": "string",
+                  "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
+                  "default": "auto",
+                },
               },
               "additionalProperties": false,
             },
-            "description": "",
+            "description": "Public web/API hostname templates keyed by environment name. The default\nentry supplies a fallback; .coolify/local.yaml overrides these per checkout.",
             "default": {},
           },
-          "githubApp": {"type": "string", "description": "", "default": ""},
-          "server": {"type": "string", "description": "", "default": ""},
+          "githubApp": {
+            "type": "string",
+            "description": "Coolify GitHub App identifier used to access the repository. When empty,\ndeployment commands prompt for an App and save it in .coolify/local.yaml.",
+            "default": "",
+          },
+          "server": {
+            "type": "string",
+            "description": "Coolify server UUID. When empty, deployment commands prompt for a server\nand save the choice in .coolify/local.yaml.",
+            "default": "",
+          },
           "token": {
             "anyOf": [
               {"type": "string"},
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Coolify API token stored in this private profile. Use either token or tokenEnv.",
             "default": null,
           },
           "tokenEnv": {
@@ -441,10 +515,14 @@ final class AppConfigSettings extends Model {
               {"type": "string"},
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Environment variable containing the Coolify API token. Read from the shell or\n.env unless --no-env-file is set; shell values take precedence. Use either\ntokenEnv or token.",
             "default": null,
           },
-          "url": {"type": "string", "description": "", "default": ""},
+          "url": {
+            "type": "string",
+            "description": "HTTPS base URL of the Coolify instance, for example https://coolify.example.com.",
+            "default": "",
+          },
         },
       }),
     ).decode({}),
@@ -465,7 +543,7 @@ final class AppConfigSettings extends Model {
     deprecated: false,
   );
 
-  ///
+  /// PostgreSQL engine and major version for newly created databases.
   final database = ConfigSetting<_c2.DatabaseConfig>(
     "database",
     type:
@@ -490,13 +568,19 @@ final class AppConfigSettings extends Model {
           "properties": {
             "type": {
               "type": "string",
-              "description": "",
+              "description":
+                  "Database engine. Currently only postgres is supported.",
               "default": "postgres",
             },
-            "version": {"type": "integer", "description": "", "default": 18},
+            "version": {
+              "type": "integer",
+              "description": "PostgreSQL major version for new databases: 16, 17 or 18. Tug never\nautomatically upgrades an existing database.",
+              "default": 18,
+            },
           },
         }),
-    description: "",
+    description:
+        "PostgreSQL engine and major version for newly created databases.",
     defaultValue:
         CliValueType.object<_c2.DatabaseConfig>(
               properties: {
@@ -520,12 +604,13 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "type": {
                   "type": "string",
-                  "description": "",
+                  "description":
+                      "Database engine. Currently only postgres is supported.",
                   "default": "postgres",
                 },
                 "version": {
                   "type": "integer",
-                  "description": "",
+                  "description": "PostgreSQL major version for new databases: 16, 17 or 18. Tug never\nautomatically upgrades an existing database.",
                   "default": 18,
                 },
               },
@@ -536,7 +621,7 @@ final class AppConfigSettings extends Model {
     deprecated: false,
   );
 
-  ///
+  /// Named, isolated deployments with their own branches, databases and runtime settings.
   final environments = ConfigSetting<Map<String, _c6.EnvironmentConfig>>(
     "environments",
     type: CliValueType.map(
@@ -569,7 +654,7 @@ final class AppConfigSettings extends Model {
                       {"type": "string"},
                       {"type": "null"},
                     ],
-                    "description": "",
+                    "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                     "default": null,
                   },
                   "user": {
@@ -577,40 +662,8 @@ final class AppConfigSettings extends Model {
                       {"type": "string"},
                       {"type": "null"},
                     ],
-                    "description": "",
+                    "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                     "default": null,
-                  },
-                },
-              }),
-          "domains":
-              CliValueType.object<_c0.DomainConfig>(
-                properties: {
-                  "api": CliValueType.string(),
-                  "web": CliValueType.string(),
-                },
-                fromJson: (json) => _c0.DomainConfig(
-                  api: CliValueType.string().decode(
-                    json.containsKey("api") ? json["api"] : "auto",
-                  ),
-                  web: CliValueType.string().decode(
-                    json.containsKey("web") ? json["web"] : "auto",
-                  ),
-                ),
-                toJson: (value) => {
-                  "api": CliValueType.string().encode(value.api),
-                  "web": CliValueType.string().encode(value.web),
-                },
-              ).constrained({
-                "properties": {
-                  "api": {
-                    "type": "string",
-                    "description": "",
-                    "default": "auto",
-                  },
-                  "web": {
-                    "type": "string",
-                    "description": "",
-                    "default": "auto",
                   },
                 },
               }),
@@ -630,7 +683,7 @@ final class AppConfigSettings extends Model {
                 "properties": {
                   "enabled": {
                     "type": "boolean",
-                    "description": "",
+                    "description": "Create and manage a private Redis instance for each enabled environment.",
                     "default": false,
                   },
                 },
@@ -648,7 +701,11 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
             }),
           ),
@@ -690,7 +747,7 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                         "default": null,
                       },
                       "user": {
@@ -698,7 +755,7 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                         "default": null,
                       },
                     },
@@ -707,44 +764,6 @@ final class AppConfigSettings extends Model {
                     json.containsKey("database")
                         ? json["database"]
                         : {"name": null, "user": null},
-                  ),
-          domains:
-              CliValueType.object<_c0.DomainConfig>(
-                    properties: {
-                      "api": CliValueType.string(),
-                      "web": CliValueType.string(),
-                    },
-                    fromJson: (json) => _c0.DomainConfig(
-                      api: CliValueType.string().decode(
-                        json.containsKey("api") ? json["api"] : "auto",
-                      ),
-                      web: CliValueType.string().decode(
-                        json.containsKey("web") ? json["web"] : "auto",
-                      ),
-                    ),
-                    toJson: (value) => {
-                      "api": CliValueType.string().encode(value.api),
-                      "web": CliValueType.string().encode(value.web),
-                    },
-                  )
-                  .constrained({
-                    "properties": {
-                      "api": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                      "web": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                    },
-                  })
-                  .decode(
-                    json.containsKey("domains")
-                        ? json["domains"]
-                        : {"web": "auto", "api": "auto"},
                   ),
           env: CliValueType.map(CliValueType.string())
               .decode(json.containsKey("env") ? json["env"] : {}),
@@ -764,7 +783,7 @@ final class AppConfigSettings extends Model {
                     "properties": {
                       "enabled": {
                         "type": "boolean",
-                        "description": "",
+                        "description": "Create and manage a private Redis instance for each enabled environment.",
                         "default": false,
                       },
                     },
@@ -784,7 +803,11 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
             }),
           ).decode(json.containsKey("secrets") ? json["secrets"] : {}),
@@ -824,7 +847,7 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                         "default": null,
                       },
                       "user": {
@@ -832,46 +855,12 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                         "default": null,
                       },
                     },
                   })
                   .encode(value.database),
-          "domains":
-              CliValueType.object<_c0.DomainConfig>(
-                    properties: {
-                      "api": CliValueType.string(),
-                      "web": CliValueType.string(),
-                    },
-                    fromJson: (json) => _c0.DomainConfig(
-                      api: CliValueType.string().decode(
-                        json.containsKey("api") ? json["api"] : "auto",
-                      ),
-                      web: CliValueType.string().decode(
-                        json.containsKey("web") ? json["web"] : "auto",
-                      ),
-                    ),
-                    toJson: (value) => {
-                      "api": CliValueType.string().encode(value.api),
-                      "web": CliValueType.string().encode(value.web),
-                    },
-                  )
-                  .constrained({
-                    "properties": {
-                      "api": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                      "web": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                    },
-                  })
-                  .encode(value.domains),
           "env": CliValueType.map(CliValueType.string()).encode(value.env),
           "redis":
               CliValueType.object<_c4.RedisConfig>(
@@ -889,7 +878,7 @@ final class AppConfigSettings extends Model {
                     "properties": {
                       "enabled": {
                         "type": "boolean",
-                        "description": "",
+                        "description": "Create and manage a private Redis instance for each enabled environment.",
                         "default": false,
                       },
                     },
@@ -909,20 +898,28 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
             }),
           ).encode(value.secrets),
         },
       ).constrained({
         "properties": {
-          "branch": {"type": "string", "description": "", "default": "main"},
+          "branch": {
+            "type": "string",
+            "description": "Git branch Coolify deploys for this environment.",
+            "default": "main",
+          },
           "configMode": {
             "anyOf": [
               {"type": "string"},
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Serverpod configuration mode. Defaults to production for the production\nenvironment and staging otherwise; the runtime mode remains production.",
             "default": null,
           },
           "database": {
@@ -933,7 +930,7 @@ final class AppConfigSettings extends Model {
                   {"type": "string"},
                   {"type": "null"},
                 ],
-                "description": "",
+                "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                 "default": null,
               },
               "user": {
@@ -941,28 +938,18 @@ final class AppConfigSettings extends Model {
                   {"type": "string"},
                   {"type": "null"},
                 ],
-                "description": "",
+                "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                 "default": null,
               },
             },
             "additionalProperties": false,
-            "description": "",
+            "description": "Initial database name and user overrides for this environment.",
             "default": {"name": null, "user": null},
-          },
-          "domains": {
-            "type": "object",
-            "properties": {
-              "api": {"type": "string", "description": "", "default": "auto"},
-              "web": {"type": "string", "description": "", "default": "auto"},
-            },
-            "additionalProperties": false,
-            "description": "",
-            "default": {"web": "auto", "api": "auto"},
           },
           "env": {
             "type": "object",
             "additionalProperties": {"type": "string"},
-            "description": "",
+            "description": "Literal non-secret runtime environment variables. Tug-managed connection,\nport and credential settings cannot be overridden here. Use secrets for passwords.",
             "default": {},
           },
           "redis": {
@@ -972,7 +959,7 @@ final class AppConfigSettings extends Model {
                 "properties": {
                   "enabled": {
                     "type": "boolean",
-                    "description": "",
+                    "description": "Create and manage a private Redis instance for each enabled environment.",
                     "default": false,
                   },
                 },
@@ -980,7 +967,7 @@ final class AppConfigSettings extends Model {
               },
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Override the project Redis setting for this environment. When omitted,\nthe project-level redis configuration applies.",
             "default": null,
           },
           "secrets": {
@@ -988,17 +975,21 @@ final class AppConfigSettings extends Model {
             "additionalProperties": {
               "type": "object",
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
               "additionalProperties": false,
             },
-            "description": "",
+            "description": "Serverpod password names mapped to local environment-variable references.\nEach value is sent as `SERVERPOD_PASSWORD_<name>`; keep secret values out of this file.",
             "default": {},
           },
         },
       }),
     ),
-    description: "",
+    description: "Named, isolated deployments with their own branches, databases and runtime settings.",
     defaultValue: CliValueType.map(
       CliValueType.object<_c6.EnvironmentConfig>(
         properties: {
@@ -1029,7 +1020,7 @@ final class AppConfigSettings extends Model {
                       {"type": "string"},
                       {"type": "null"},
                     ],
-                    "description": "",
+                    "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                     "default": null,
                   },
                   "user": {
@@ -1037,40 +1028,8 @@ final class AppConfigSettings extends Model {
                       {"type": "string"},
                       {"type": "null"},
                     ],
-                    "description": "",
+                    "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                     "default": null,
-                  },
-                },
-              }),
-          "domains":
-              CliValueType.object<_c0.DomainConfig>(
-                properties: {
-                  "api": CliValueType.string(),
-                  "web": CliValueType.string(),
-                },
-                fromJson: (json) => _c0.DomainConfig(
-                  api: CliValueType.string().decode(
-                    json.containsKey("api") ? json["api"] : "auto",
-                  ),
-                  web: CliValueType.string().decode(
-                    json.containsKey("web") ? json["web"] : "auto",
-                  ),
-                ),
-                toJson: (value) => {
-                  "api": CliValueType.string().encode(value.api),
-                  "web": CliValueType.string().encode(value.web),
-                },
-              ).constrained({
-                "properties": {
-                  "api": {
-                    "type": "string",
-                    "description": "",
-                    "default": "auto",
-                  },
-                  "web": {
-                    "type": "string",
-                    "description": "",
-                    "default": "auto",
                   },
                 },
               }),
@@ -1090,7 +1049,7 @@ final class AppConfigSettings extends Model {
                 "properties": {
                   "enabled": {
                     "type": "boolean",
-                    "description": "",
+                    "description": "Create and manage a private Redis instance for each enabled environment.",
                     "default": false,
                   },
                 },
@@ -1108,7 +1067,11 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
             }),
           ),
@@ -1150,7 +1113,7 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                         "default": null,
                       },
                       "user": {
@@ -1158,7 +1121,7 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                         "default": null,
                       },
                     },
@@ -1167,44 +1130,6 @@ final class AppConfigSettings extends Model {
                     json.containsKey("database")
                         ? json["database"]
                         : {"name": null, "user": null},
-                  ),
-          domains:
-              CliValueType.object<_c0.DomainConfig>(
-                    properties: {
-                      "api": CliValueType.string(),
-                      "web": CliValueType.string(),
-                    },
-                    fromJson: (json) => _c0.DomainConfig(
-                      api: CliValueType.string().decode(
-                        json.containsKey("api") ? json["api"] : "auto",
-                      ),
-                      web: CliValueType.string().decode(
-                        json.containsKey("web") ? json["web"] : "auto",
-                      ),
-                    ),
-                    toJson: (value) => {
-                      "api": CliValueType.string().encode(value.api),
-                      "web": CliValueType.string().encode(value.web),
-                    },
-                  )
-                  .constrained({
-                    "properties": {
-                      "api": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                      "web": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                    },
-                  })
-                  .decode(
-                    json.containsKey("domains")
-                        ? json["domains"]
-                        : {"web": "auto", "api": "auto"},
                   ),
           env: CliValueType.map(CliValueType.string())
               .decode(json.containsKey("env") ? json["env"] : {}),
@@ -1224,7 +1149,7 @@ final class AppConfigSettings extends Model {
                     "properties": {
                       "enabled": {
                         "type": "boolean",
-                        "description": "",
+                        "description": "Create and manage a private Redis instance for each enabled environment.",
                         "default": false,
                       },
                     },
@@ -1244,7 +1169,11 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
             }),
           ).decode(json.containsKey("secrets") ? json["secrets"] : {}),
@@ -1284,7 +1213,7 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                         "default": null,
                       },
                       "user": {
@@ -1292,46 +1221,12 @@ final class AppConfigSettings extends Model {
                           {"type": "string"},
                           {"type": "null"},
                         ],
-                        "description": "",
+                        "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                         "default": null,
                       },
                     },
                   })
                   .encode(value.database),
-          "domains":
-              CliValueType.object<_c0.DomainConfig>(
-                    properties: {
-                      "api": CliValueType.string(),
-                      "web": CliValueType.string(),
-                    },
-                    fromJson: (json) => _c0.DomainConfig(
-                      api: CliValueType.string().decode(
-                        json.containsKey("api") ? json["api"] : "auto",
-                      ),
-                      web: CliValueType.string().decode(
-                        json.containsKey("web") ? json["web"] : "auto",
-                      ),
-                    ),
-                    toJson: (value) => {
-                      "api": CliValueType.string().encode(value.api),
-                      "web": CliValueType.string().encode(value.web),
-                    },
-                  )
-                  .constrained({
-                    "properties": {
-                      "api": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                      "web": {
-                        "type": "string",
-                        "description": "",
-                        "default": "auto",
-                      },
-                    },
-                  })
-                  .encode(value.domains),
           "env": CliValueType.map(CliValueType.string()).encode(value.env),
           "redis":
               CliValueType.object<_c4.RedisConfig>(
@@ -1349,7 +1244,7 @@ final class AppConfigSettings extends Model {
                     "properties": {
                       "enabled": {
                         "type": "boolean",
-                        "description": "",
+                        "description": "Create and manage a private Redis instance for each enabled environment.",
                         "default": false,
                       },
                     },
@@ -1369,20 +1264,28 @@ final class AppConfigSettings extends Model {
               },
             ).constrained({
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
             }),
           ).encode(value.secrets),
         },
       ).constrained({
         "properties": {
-          "branch": {"type": "string", "description": "", "default": "main"},
+          "branch": {
+            "type": "string",
+            "description": "Git branch Coolify deploys for this environment.",
+            "default": "main",
+          },
           "configMode": {
             "anyOf": [
               {"type": "string"},
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Serverpod configuration mode. Defaults to production for the production\nenvironment and staging otherwise; the runtime mode remains production.",
             "default": null,
           },
           "database": {
@@ -1393,7 +1296,7 @@ final class AppConfigSettings extends Model {
                   {"type": "string"},
                   {"type": "null"},
                 ],
-                "description": "",
+                "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                 "default": null,
               },
               "user": {
@@ -1401,28 +1304,18 @@ final class AppConfigSettings extends Model {
                   {"type": "string"},
                   {"type": "null"},
                 ],
-                "description": "",
+                "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                 "default": null,
               },
             },
             "additionalProperties": false,
-            "description": "",
+            "description": "Initial database name and user overrides for this environment.",
             "default": {"name": null, "user": null},
-          },
-          "domains": {
-            "type": "object",
-            "properties": {
-              "api": {"type": "string", "description": "", "default": "auto"},
-              "web": {"type": "string", "description": "", "default": "auto"},
-            },
-            "additionalProperties": false,
-            "description": "",
-            "default": {"web": "auto", "api": "auto"},
           },
           "env": {
             "type": "object",
             "additionalProperties": {"type": "string"},
-            "description": "",
+            "description": "Literal non-secret runtime environment variables. Tug-managed connection,\nport and credential settings cannot be overridden here. Use secrets for passwords.",
             "default": {},
           },
           "redis": {
@@ -1432,7 +1325,7 @@ final class AppConfigSettings extends Model {
                 "properties": {
                   "enabled": {
                     "type": "boolean",
-                    "description": "",
+                    "description": "Create and manage a private Redis instance for each enabled environment.",
                     "default": false,
                   },
                 },
@@ -1440,7 +1333,7 @@ final class AppConfigSettings extends Model {
               },
               {"type": "null"},
             ],
-            "description": "",
+            "description": "Override the project Redis setting for this environment. When omitted,\nthe project-level redis configuration applies.",
             "default": null,
           },
           "secrets": {
@@ -1448,11 +1341,15 @@ final class AppConfigSettings extends Model {
             "additionalProperties": {
               "type": "object",
               "properties": {
-                "fromEnv": {"type": "string", "description": "", "default": ""},
+                "fromEnv": {
+                  "type": "string",
+                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "default": "",
+                },
               },
               "additionalProperties": false,
             },
-            "description": "",
+            "description": "Serverpod password names mapped to local environment-variable references.\nEach value is sent as `SERVERPOD_PASSWORD_<name>`; keep secret values out of this file.",
             "default": {},
           },
         },
@@ -1474,7 +1371,7 @@ final class AppConfigSettings extends Model {
     deprecated: false,
   );
 
-  ///
+  /// Default Redis setting for all environments; individual environments can override it.
   final redis = ConfigSetting<_c4.RedisConfig>(
     "redis",
     type:
@@ -1490,10 +1387,14 @@ final class AppConfigSettings extends Model {
           },
         ).constrained({
           "properties": {
-            "enabled": {"type": "boolean", "description": "", "default": false},
+            "enabled": {
+              "type": "boolean",
+              "description": "Create and manage a private Redis instance for each enabled environment.",
+              "default": false,
+            },
           },
         }),
-    description: "",
+    description: "Default Redis setting for all environments; individual environments can override it.",
     defaultValue:
         CliValueType.object<_c4.RedisConfig>(
               properties: {"enabled": CliValueType.boolean()},
@@ -1510,7 +1411,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "enabled": {
                   "type": "boolean",
-                  "description": "",
+                  "description": "Create and manage a private Redis instance for each enabled environment.",
                   "default": false,
                 },
               },
@@ -1521,7 +1422,8 @@ final class AppConfigSettings extends Model {
     deprecated: false,
   );
 
-  ///
+  /// Serverpod and Flutter package paths and build options. Omit to discover
+  /// the packages automatically and use the default build options.
   final serverpod = ConfigSetting<_c7.ServerpodConfig?>(
     "serverpod",
     type:
@@ -1558,7 +1460,11 @@ final class AppConfigSettings extends Model {
           },
         ).constrained({
           "properties": {
-            "flutter": {"type": "string", "description": "", "default": ""},
+            "flutter": {
+              "type": "string",
+              "description": "Path to the Flutter web package, relative to the repository root.\nAn empty path enables automatic package discovery.",
+              "default": "",
+            },
             "flutterBaseHref": {
               "type": "string",
               "description":
@@ -1567,13 +1473,17 @@ final class AppConfigSettings extends Model {
             },
             "migrations": {
               "type": "boolean",
-              "description": "",
+              "description": "Apply Serverpod database migrations when the deployed application starts.",
               "default": true,
             },
-            "server": {"type": "string", "description": "", "default": ""},
+            "server": {
+              "type": "string",
+              "description": "Path to the Serverpod server package, relative to the repository root.\nAn empty path enables automatic package discovery.",
+              "default": "",
+            },
           },
         }).nullable(),
-    description: "",
+    description: "Serverpod and Flutter package paths and build options. Omit to discover\nthe packages automatically and use the default build options.",
     defaultValue:
         CliValueType.object<_c7.ServerpodConfig>(
               properties: {
@@ -1609,7 +1519,11 @@ final class AppConfigSettings extends Model {
             )
             .constrained({
               "properties": {
-                "flutter": {"type": "string", "description": "", "default": ""},
+                "flutter": {
+                  "type": "string",
+                  "description": "Path to the Flutter web package, relative to the repository root.\nAn empty path enables automatic package discovery.",
+                  "default": "",
+                },
                 "flutterBaseHref": {
                   "type": "string",
                   "description":
@@ -1618,10 +1532,14 @@ final class AppConfigSettings extends Model {
                 },
                 "migrations": {
                   "type": "boolean",
-                  "description": "",
+                  "description": "Apply Serverpod database migrations when the deployed application starts.",
                   "default": true,
                 },
-                "server": {"type": "string", "description": "", "default": ""},
+                "server": {
+                  "type": "string",
+                  "description": "Path to the Serverpod server package, relative to the repository root.\nAn empty path enables automatic package discovery.",
+                  "default": "",
+                },
               },
             })
             .nullable()
@@ -1631,7 +1549,7 @@ final class AppConfigSettings extends Model {
     deprecated: false,
   );
 
-  ///
+  /// Git repository shared by all deployment environments.
   final source = ConfigSetting<_c8.SourceConfig>(
     "source",
     type:
@@ -1649,12 +1567,12 @@ final class AppConfigSettings extends Model {
           "properties": {
             "repository": {
               "type": "string",
-              "description": "",
+              "description": "GitHub repository URL shared by all environments. auto reads the origin\nGit remote; an explicit URL must identify the same repository as origin.",
               "default": "auto",
             },
           },
         }),
-    description: "",
+    description: "Git repository shared by all deployment environments.",
     defaultValue:
         CliValueType.object<_c8.SourceConfig>(
               properties: {"repository": CliValueType.string()},
@@ -1671,7 +1589,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "repository": {
                   "type": "string",
-                  "description": "",
+                  "description": "GitHub repository URL shared by all environments. auto reads the origin\nGit remote; an explicit URL must identify the same repository as origin.",
                   "default": "auto",
                 },
               },

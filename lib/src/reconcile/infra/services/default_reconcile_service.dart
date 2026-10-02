@@ -67,12 +67,8 @@ class DefaultReconcileService extends ReconcileService {
   }
 
   String _domain(DeploymentSpec s, String env, String type) {
-    final config = s.config.environments[env]!;
     final template = s.context.domains[env] ?? s.context.domains['default'];
-    var domain = type == 'web' ? config.domains.web : config.domains.api;
-    if (domain == 'auto') {
-      domain = (type == 'web' ? template?.web : template?.api) ?? '';
-    }
+    var domain = (type == 'web' ? template?.web : template?.api) ?? '';
     domain = domain
         .replaceAll('{app}', s.config.name!)
         .replaceAll('{name}', s.config.name!)
@@ -103,7 +99,7 @@ class DefaultReconcileService extends ReconcileService {
               !RegExp(r'^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$').hasMatch(l),
         )) {
       throw TugException(
-        'Set environments.$env.domains.$type to a hostname or configure a context domain template.',
+        'Set domains.$env.$type in .coolify/local.yaml or configure a context domain template.',
       );
     }
     return domain;

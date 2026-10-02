@@ -16,6 +16,7 @@ abstract class TugCommand extends CliCommand {
       context.terminal.writeln('tug ${App.buildVersion}');
       return CommandResult.success;
     }
+    await commandEnvironment(context);
     await validateConfiguration(context);
     warnLocalSensitiveValues(context);
     await run(context, AppConfig());

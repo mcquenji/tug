@@ -28,10 +28,6 @@ class InitCommand extends TugCommand {
     }
     final env = EnvironmentConfig(
       branch: c.args.get(CommandOptions.branch) ?? layout.branch,
-      domains: DomainConfig(
-        web: c.args.get(CommandOptions.web) ?? 'auto',
-        api: c.args.get(CommandOptions.api) ?? 'auto',
-      ),
       configMode: c.args.get(CommandOptions.configMode),
     );
     await workspace.generate(
@@ -40,22 +36,23 @@ class InitCommand extends TugCommand {
     );
     await c.config.local.update((edit) {
       edit.set(AppConfig.settings.name, layout.name);
-      edit.set(
-        AppConfig.settings.source,
-        SourceConfig(repository: layout.repository),
-      );
+      edit.set(AppConfig.settings.source, const SourceConfig());
       edit.set(
         AppConfig.settings.serverpod,
         ServerpodConfig(server: layout.server, flutter: layout.flutter),
       );
       edit.set(AppConfig.settings.environments, {'production': env});
-      if (c.args.wasProvided(CommandOptions.context)) {
-        edit.set(
-          AppConfig.settings.context,
-          c.args.require(CommandOptions.context),
-        );
-      }
     });
+    final settings = await DeploymentSettings.load(layout.root);
+    settings.context = c.args.get(CommandOptions.context) ?? settings.context;
+    settings.setDomains(
+      'production',
+      DomainConfig(
+        web: c.args.get(CommandOptions.web) ?? 'auto',
+        api: c.args.get(CommandOptions.api) ?? 'auto',
+      ),
+    );
+    await settings.save();
     c.terminal.writeln(
       'Created coolify.yaml and .coolify build files. Review and commit the generated deployment files and dependency locks. Runtime YAML and passwords are never staged or committed by Tug.',
     );

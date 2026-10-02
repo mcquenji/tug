@@ -1,38 +1,171 @@
-import 'dart:io';
-
 import 'package:grumpy_cli/grumpy_cli.dart';
 import 'package:tug/src/app/app.dart';
 import 'package:tug/src/app/infra/infra.dart';
 import 'package:tug/src/coolify/coolify.dart';
 
 /// Resolve the selected profile and configure its explicit credential destination.
-CoolifyContext resolveCoolifyContext(CommandContext c, AppConfig config) {
-  final selected =
-      c.args.get(CommandOptions.context) ??
-      config.context ??
-      config.currentContext;
-  final connection = config.contexts[selected];
+Future<CoolifyContext> resolveCoolifyContext(
+  CommandContext c,
+  AppConfig config, {
+  CoolifyApiService? api,
+  CoolifyDatasource? remote,
+  bool requireInfrastructure = true,
+  bool requireDomains = true,
+}) async {
+  final settings = await DeploymentSettings.load(projectDirectory(c));
+  final contexts = {...config.contexts, ...settings.contexts};
+  var selected = c.args.get(CommandOptions.context) ?? settings.context;
+  if (contexts.isEmpty) {
+    selected ??= validateContextName(
+      await c.prompts.text(
+        'Name for this local Coolify context',
+        defaultValue: 'local',
+      ),
+    );
+    final url = await c.prompts.text(
+      'Coolify HTTPS URL (saved in .coolify/local.yaml)',
+    );
+    final connection = CoolifyContext(url: url);
+    contexts[selected] = connection;
+    settings.values['contexts'] = AppConfig.settings.contexts.type.encode(
+      contexts,
+    );
+  }
+  selected ??= await c.prompts.select<String>(
+    'Coolify context for this checkout',
+    choices: [for (final name in contexts.keys) PromptChoice(name, name)],
+    defaultValue: contexts.containsKey(config.currentContext)
+        ? config.currentContext
+        : null,
+    allowDefaultNonInteractive: config.currentContext != null,
+  );
+  var connection = contexts[selected];
   if (connection == null) {
     throw const TugException(
-      'Select a configured context using --context, project context, or tug context use.',
+      'Selected context does not exist. Choose a global context with --context or edit .coolify/local.yaml.',
     );
   }
   if (connection.token != null && connection.tokenEnv != null) {
     throw const TugException('A context must use token or tokenEnv, not both.');
   }
-  final token = connection.tokenEnv == null
+  var token = connection.tokenEnv == null
       ? connection.token
-      : Platform.environment[connection.tokenEnv];
+      : (await commandEnvironment(c))[connection.tokenEnv];
   if (token == null || token.isEmpty) {
-    throw const TugException(
-      'The selected context has no available API token. Use context add or set its token environment variable.',
+    token = await c.prompts.password(
+      'API token for $selected (saved in .coolify/local.yaml)',
     );
+    connection = CoolifyContext(
+      url: connection.url,
+      token: token,
+      server: connection.server,
+      destination: connection.destination,
+      githubApp: connection.githubApp,
+      domains: connection.domains,
+    );
+    settings.values['contexts'] = AppConfig.settings.contexts.type.encode({
+      ...settings.contexts,
+      selected: connection,
+    });
   }
   if (c.terminal is SafeTerminalService) {
     (c.terminal as SafeTerminalService).secrets.add(token);
   }
-  CoolifyApiService().configure(connection, token);
-  return connection;
+  (api ?? CoolifyApiService()).configure(connection, token);
+  Future<String> resource(
+    String value,
+    String label,
+    CoolifyOperation operation, {
+    String? parent,
+  }) async {
+    if (value.isNotEmpty || !requireInfrastructure) return value;
+    final options = await c.terminal.task(
+      'Load available $label',
+      () => (remote ?? CoolifyDatasource()).list(operation, uuid: parent),
+    );
+    if (options.isEmpty) {
+      throw TugException(
+        'No $label available in the selected Coolify context.',
+      );
+    }
+    return c.prompts.select<String>(
+      'Select $label',
+      choices: [
+        for (final r in options) PromptChoice('${r.name} (${r.uuid})', r.uuid),
+      ],
+    );
+  }
+
+  final server = await resource(
+    connection.server,
+    'server',
+    CoolifyOperation.servers,
+  );
+  final destination = await resource(
+    connection.destination,
+    'destination',
+    CoolifyOperation.destinations,
+    parent: server,
+  );
+  final githubApp = await resource(
+    connection.githubApp,
+    'GitHub App',
+    CoolifyOperation.githubApps,
+  );
+  if (server != connection.server ||
+      destination != connection.destination ||
+      githubApp != connection.githubApp) {
+    settings.values['contexts'] = AppConfig.settings.contexts.type.encode({
+      ...settings.contexts,
+      selected: CoolifyContext(
+        url: connection.url,
+        token: connection.token,
+        tokenEnv: connection.tokenEnv,
+        server: server,
+        destination: destination,
+        githubApp: githubApp,
+        domains: connection.domains,
+      ),
+    });
+  }
+  final domains = {
+    ...connection.domains,
+    if (settings.context == null || settings.context == selected)
+      ...settings.domains,
+  };
+  if (settings.context != null && settings.context != selected) {
+    settings.values.remove('domains');
+  }
+  settings.context = selected;
+  for (final name in requireDomains ? config.environments.keys : <String>[]) {
+    final current = domains[name] ?? domains['default'] ?? const DomainConfig();
+    Future<String> domain(String value, String kind) async {
+      if (value.isNotEmpty && value != 'auto') return value;
+      return c.prompts.text(
+        '$name $kind public hostname',
+        description:
+            'For example $kind.example.com; saved only in .coolify/local.yaml.',
+      );
+    }
+
+    final resolved = DomainConfig(
+      web: await domain(current.web, 'web'),
+      api: await domain(current.api, 'api'),
+    );
+    domains[name] = resolved;
+    settings.setDomains(name, resolved);
+  }
+  await settings.save();
+  c.terminal.detail('Context $selected · ${connection.url}');
+  return CoolifyContext(
+    url: connection.url,
+    token: connection.token,
+    tokenEnv: connection.tokenEnv,
+    server: server,
+    destination: destination,
+    githubApp: githubApp,
+    domains: domains,
+  );
 }
 
 /// Validate a context name before saving it in the global configuration.

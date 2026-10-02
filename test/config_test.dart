@@ -15,7 +15,7 @@ void main() {
   );
   tearDown(() async => temp.delete(recursive: true));
   test(
-    'default Grumpy precedence replaces maps and scoped writes remain scoped',
+    'global connections and shared application settings remain separate',
     () async {
       final config = await configFixture(
         temp,
@@ -24,15 +24,11 @@ contexts:
   global: {url: https://global.example.com, tokenEnv: TOKEN}
   inherited: {url: https://other.example.com}
 ''',
-        local: '''currentContext: local
-contexts:
-  local: {url: https://local.example.com}
-environments: {}
-''',
+        local: 'environments: {}\n',
       );
       final resolved = AppConfig.defaults().resolveConfig(config);
-      expect(resolved.currentContext, 'local');
-      expect(resolved.contexts.keys, ['local']);
+      expect(resolved.currentContext, 'global');
+      expect(resolved.contexts.keys, ['global', 'inherited']);
       expect(resolved.database.version, 18);
       final localBefore = await File(config.local.path).readAsString();
       await config.global.set(AppConfig.settings.contexts, {
@@ -42,62 +38,44 @@ environments: {}
         ),
       });
       expect(await File(config.local.path).readAsString(), localBefore);
-      expect(config.get(AppConfig.settings.contexts)!.keys, ['local']);
-      await config.local.remove(AppConfig.settings.contexts);
       expect(config.get(AppConfig.settings.contexts)!.keys, ['new']);
       expect(
         await File(config.global.path).readAsString(),
         contains('config.schema.json#/\$defs/global'),
       );
-      expect(
-        await File(config.local.path).readAsString(),
-        contains('config.schema.json#/\$defs/local'),
-      );
     },
   );
-  test(
-    'warns for inactive local credentials once without printing values',
-    () async {
-      final config = await configFixture(
-        temp,
-        local: '''currentContext: active
-contexts:
-  active: {url: https://active.example.com, tokenEnv: TOKEN}
-  inactive: {url: https://inactive.example.com, token: never-print-me}
-environments:
+  test('warns about inline manifest secrets without printing values', () async {
+    final config = await configFixture(
+      temp,
+      local: '''environments:
   production:
     env: {API_TOKEN: also-secret, ORDINARY: ordinary}
     secrets:
       jwtSecret: {fromEnv: JWT_SECRET}
 ''',
-      );
-      final terminal = MemoryTerminal();
-      final code = await App(
-        terminal: terminal,
-        files: config.files,
-      ).run(['context', 'list']);
-      expect(code, 0, reason: terminal.errors.toString());
-      expect(terminal.errors.toString(), contains('contexts.inactive.token'));
-      expect(
-        'contexts.inactive.token'.allMatches(terminal.errors.toString()).length,
-        1,
-      );
-      expect(
-        terminal.errors.toString(),
-        contains('environments.production.env.API_TOKEN'),
-      );
-      for (final value in [
-        'never-print-me',
-        'also-secret',
-        'tokenEnv',
-        'fromEnv',
-        'ORDINARY',
-      ]) {
-        expect(terminal.errors.toString(), isNot(contains(value)));
-      }
-      expect(terminal.output.toString(), isNot(contains('never-print-me')));
-    },
-  );
+    );
+    final terminal = MemoryTerminal();
+    final code = await App(
+      terminal: terminal,
+      files: config.files,
+    ).run(['context', 'list']);
+    expect(code, 0, reason: terminal.errors.toString());
+    expect(
+      terminal.errors.toString(),
+      contains('environments.production.env.API_TOKEN'),
+    );
+    for (final value in [
+      'never-print-me',
+      'also-secret',
+      'tokenEnv',
+      'fromEnv',
+      'ORDINARY',
+    ]) {
+      expect(terminal.errors.toString(), isNot(contains(value)));
+    }
+    expect(terminal.output.toString(), isNot(contains('never-print-me')));
+  });
   test('offline schema matches canonical and correctly scopes fields', () {
     expect(
       jsonDecode(configSchemaJson),
@@ -117,7 +95,7 @@ environments:
     );
     expect(
       () => validateOffline({'name': 'demo', 'contexts': {}}, scope: 'local'),
-      returnsNormally,
+      throwsException,
     );
     expect(
       () => validateOffline({

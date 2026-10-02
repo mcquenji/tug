@@ -8,8 +8,16 @@ class ServerpodConfig extends Model {
     this.migrations = true,
     this.flutterBaseHref = '/app/',
   });
+
+  /// Path to the Serverpod server package, relative to the repository root.
+  /// An empty path enables automatic package discovery.
   final String server;
+
+  /// Path to the Flutter web package, relative to the repository root.
+  /// An empty path enables automatic package discovery.
   final String flutter;
+
+  /// Apply Serverpod database migrations when the deployed application starts.
   final bool migrations;
 
   /// URL prefix used by the application's FlutterRoute.

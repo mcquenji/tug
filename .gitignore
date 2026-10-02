@@ -5,4 +5,8 @@ coverage/
 *.log
 .coolify/state.json
 .env
+.env.*
+.coolify/local.yaml
+.coolify/local.yaml.tmp
+.coolify/state.json.tmp
 pubspec_overrides.yaml

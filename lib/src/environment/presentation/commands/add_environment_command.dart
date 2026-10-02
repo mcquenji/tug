@@ -34,12 +34,17 @@ class AddEnvironmentCommand extends TugCommand {
       selected: EnvironmentConfig(
         branch: c.args.get(CommandOptions.branch) ?? layout.branch,
         configMode: c.args.get(CommandOptions.configMode),
-        domains: DomainConfig(
-          web: c.args.get(CommandOptions.web) ?? 'auto',
-          api: c.args.get(CommandOptions.api) ?? 'auto',
-        ),
       ),
     });
+    final settings = await DeploymentSettings.load(layout.root);
+    settings.setDomains(
+      selected,
+      DomainConfig(
+        web: c.args.get(CommandOptions.web) ?? 'auto',
+        api: c.args.get(CommandOptions.api) ?? 'auto',
+      ),
+    );
+    await settings.save();
     c.terminal.writeln('Added $selected to coolify.yaml.');
   }
 }

@@ -7,6 +7,12 @@ abstract final class CommandOptions {
     negatable: false,
     description: 'Print the version embedded at build time.',
   );
+  static final envFile = CliFlag(
+    'env-file',
+    defaultValue: true,
+    description:
+        'Load .env from the project root; shell values take precedence.',
+  );
   static final color = CliFlag(
     'color',
     defaultValue: true,

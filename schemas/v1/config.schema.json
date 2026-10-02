@@ -18,7 +18,7 @@
             "properties": {
               "destination": {
                 "type": "string",
-                "description": "",
+                "description": "Coolify destination UUID on the selected server. When empty, deployment\ncommands prompt for a destination and save it in .coolify/local.yaml.",
                 "default": ""
               },
               "domains": {
@@ -28,28 +28,28 @@
                   "properties": {
                     "api": {
                       "type": "string",
-                      "description": "",
+                      "description": "Public API hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
                       "default": "auto"
                     },
                     "web": {
                       "type": "string",
-                      "description": "",
+                      "description": "Public web hostname or HTTPS origin without a port or path. Supports {app},\n{name}, {environment} and {env} placeholders. auto prompts for a hostname\nand saves it in .coolify/local.yaml.",
                       "default": "auto"
                     }
                   },
                   "additionalProperties": false
                 },
-                "description": "",
+                "description": "Public web/API hostname templates keyed by environment name. The default\nentry supplies a fallback; .coolify/local.yaml overrides these per checkout.",
                 "default": {}
               },
               "githubApp": {
                 "type": "string",
-                "description": "",
+                "description": "Coolify GitHub App identifier used to access the repository. When empty,\ndeployment commands prompt for an App and save it in .coolify/local.yaml.",
                 "default": ""
               },
               "server": {
                 "type": "string",
-                "description": "",
+                "description": "Coolify server UUID. When empty, deployment commands prompt for a server\nand save the choice in .coolify/local.yaml.",
                 "default": ""
               },
               "token": {
@@ -61,7 +61,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "",
+                "description": "Coolify API token stored in this private profile. Use either token or tokenEnv.",
                 "default": null
               },
               "tokenEnv": {
@@ -73,18 +73,18 @@
                     "type": "null"
                   }
                 ],
-                "description": "",
+                "description": "Environment variable containing the Coolify API token. Read from the shell or\n.env unless --no-env-file is set; shell values take precedence. Use either\ntokenEnv or token.",
                 "default": null
               },
               "url": {
                 "type": "string",
-                "description": "",
+                "description": "HTTPS base URL of the Coolify instance, for example https://coolify.example.com.",
                 "default": ""
               }
             },
             "additionalProperties": false
           },
-          "description": "Named Coolify connections. Tokens are sensitive, including local overrides.",
+          "description": "Named global Coolify connections; keep credentials out of the shared manifest.",
           "default": {}
         },
         "currentContext": {
@@ -109,122 +109,22 @@
           "type": "string",
           "description": "Editor schema reference."
         },
-        "context": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Optional reference to a globally configured context.",
-          "default": null
-        },
-        "contexts": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "destination": {
-                "type": "string",
-                "description": "",
-                "default": ""
-              },
-              "domains": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "api": {
-                      "type": "string",
-                      "description": "",
-                      "default": "auto"
-                    },
-                    "web": {
-                      "type": "string",
-                      "description": "",
-                      "default": "auto"
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                "description": "",
-                "default": {}
-              },
-              "githubApp": {
-                "type": "string",
-                "description": "",
-                "default": ""
-              },
-              "server": {
-                "type": "string",
-                "description": "",
-                "default": ""
-              },
-              "token": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "",
-                "default": null
-              },
-              "tokenEnv": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "",
-                "default": null
-              },
-              "url": {
-                "type": "string",
-                "description": "",
-                "default": ""
-              }
-            },
-            "additionalProperties": false
-          },
-          "description": "Named Coolify connections. Tokens are sensitive, including local overrides.",
-          "default": {}
-        },
-        "currentContext": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Default connection profile when no project or command selects one.",
-          "default": null
-        },
         "database": {
           "type": "object",
           "properties": {
             "type": {
               "type": "string",
-              "description": "",
+              "description": "Database engine. Currently only postgres is supported.",
               "default": "postgres"
             },
             "version": {
               "type": "integer",
-              "description": "",
+              "description": "PostgreSQL major version for new databases: 16, 17 or 18. Tug never\nautomatically upgrades an existing database.",
               "default": 18
             }
           },
           "additionalProperties": false,
-          "description": "",
+          "description": "PostgreSQL engine and major version for newly created databases.",
           "default": {
             "type": "postgres",
             "version": 18
@@ -237,7 +137,7 @@
             "properties": {
               "branch": {
                 "type": "string",
-                "description": "",
+                "description": "Git branch Coolify deploys for this environment.",
                 "default": "main"
               },
               "configMode": {
@@ -249,7 +149,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "",
+                "description": "Serverpod configuration mode. Defaults to production for the production\nenvironment and staging otherwise; the runtime mode remains production.",
                 "default": null
               },
               "database": {
@@ -264,7 +164,7 @@
                         "type": "null"
                       }
                     ],
-                    "description": "",
+                    "description": "Initial PostgreSQL database name. Defaults to the project name with hyphens\nreplaced by underscores; does not rename an existing database.",
                     "default": null
                   },
                   "user": {
@@ -276,36 +176,15 @@
                         "type": "null"
                       }
                     ],
-                    "description": "",
+                    "description": "Initial PostgreSQL username. Defaults to the database name; does not rename\nan existing database user.",
                     "default": null
                   }
                 },
                 "additionalProperties": false,
-                "description": "",
+                "description": "Initial database name and user overrides for this environment.",
                 "default": {
                   "name": null,
                   "user": null
-                }
-              },
-              "domains": {
-                "type": "object",
-                "properties": {
-                  "api": {
-                    "type": "string",
-                    "description": "",
-                    "default": "auto"
-                  },
-                  "web": {
-                    "type": "string",
-                    "description": "",
-                    "default": "auto"
-                  }
-                },
-                "additionalProperties": false,
-                "description": "",
-                "default": {
-                  "web": "auto",
-                  "api": "auto"
                 }
               },
               "env": {
@@ -313,7 +192,7 @@
                 "additionalProperties": {
                   "type": "string"
                 },
-                "description": "",
+                "description": "Literal non-secret runtime environment variables. Tug-managed connection,\nport and credential settings cannot be overridden here. Use secrets for passwords.",
                 "default": {}
               },
               "redis": {
@@ -323,7 +202,7 @@
                     "properties": {
                       "enabled": {
                         "type": "boolean",
-                        "description": "",
+                        "description": "Create and manage a private Redis instance for each enabled environment.",
                         "default": false
                       }
                     },
@@ -333,7 +212,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "",
+                "description": "Override the project Redis setting for this environment. When omitted,\nthe project-level redis configuration applies.",
                 "default": null
               },
               "secrets": {
@@ -343,19 +222,19 @@
                   "properties": {
                     "fromEnv": {
                       "type": "string",
-                      "description": "",
+                      "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                       "default": ""
                     }
                   },
                   "additionalProperties": false
                 },
-                "description": "",
+                "description": "Serverpod password names mapped to local environment-variable references.\nEach value is sent as `SERVERPOD_PASSWORD_<name>`; keep secret values out of this file.",
                 "default": {}
               }
             },
             "additionalProperties": false
           },
-          "description": "",
+          "description": "Named, isolated deployments with their own branches, databases and runtime settings.",
           "default": {}
         },
         "name": {
@@ -375,12 +254,12 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "",
+              "description": "Create and manage a private Redis instance for each enabled environment.",
               "default": false
             }
           },
           "additionalProperties": false,
-          "description": "",
+          "description": "Default Redis setting for all environments; individual environments can override it.",
           "default": {
             "enabled": false
           }
@@ -392,7 +271,7 @@
               "properties": {
                 "flutter": {
                   "type": "string",
-                  "description": "",
+                  "description": "Path to the Flutter web package, relative to the repository root.\nAn empty path enables automatic package discovery.",
                   "default": ""
                 },
                 "flutterBaseHref": {
@@ -402,12 +281,12 @@
                 },
                 "migrations": {
                   "type": "boolean",
-                  "description": "",
+                  "description": "Apply Serverpod database migrations when the deployed application starts.",
                   "default": true
                 },
                 "server": {
                   "type": "string",
-                  "description": "",
+                  "description": "Path to the Serverpod server package, relative to the repository root.\nAn empty path enables automatic package discovery.",
                   "default": ""
                 }
               },
@@ -417,7 +296,7 @@
               "type": "null"
             }
           ],
-          "description": "",
+          "description": "Serverpod and Flutter package paths and build options. Omit to discover\nthe packages automatically and use the default build options.",
           "default": null
         },
         "source": {
@@ -425,12 +304,12 @@
           "properties": {
             "repository": {
               "type": "string",
-              "description": "",
+              "description": "GitHub repository URL shared by all environments. auto reads the origin\nGit remote; an explicit URL must identify the same repository as origin.",
               "default": "auto"
             }
           },
           "additionalProperties": false,
-          "description": "",
+          "description": "Git repository shared by all deployment environments.",
           "default": {
             "repository": "auto"
           }
