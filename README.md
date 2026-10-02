@@ -10,11 +10,11 @@ Tug resolves the Grumpy packages from their `mcquenji` GitHub repositories. The 
 fvm dart pub get
 fvm dart run tool/generate.dart
 fvm dart run bin/tug.dart --help
-mkdir -p build
-fvm dart compile exe bin/tug.dart -o build/tug
+fvm dart run tool/build.dart
+build/tug --version
 ```
 
-Add `build/tug` to your PATH. A project must contain a Serverpod 4 server, Flutter app, committed dependency locks, generated protocol resources and migrations in one GitHub repository. Split Serverpod 3 repositories are unsupported.
+`tool/build.dart` reads the version from Tug's `pubspec.yaml` and embeds it in the executable. `tug --version` works without configuration, a checkout, or a pubspec on the target machine. Add `build/tug` to your PATH. A project must contain a Serverpod 4 server, Flutter app, committed dependency locks, generated protocol resources and migrations in one GitHub repository. Split Serverpod 3 repositories are unsupported.
 
 ## Connect to Coolify
 
@@ -30,9 +30,25 @@ tug context use home
 
 Run `tug context add` to be prompted for all missing values, including the context name. Supplied arguments skip their prompts. Domain prompts default to `auto`; unattended invocations also use that default. Replacing an existing context still requires `--force`.
 
-Set the token in your shell using your normal secret manager. Do not put its value in an argument. Omit `--token-env` to be prompted for the environment variable name, or leave that prompt blank to enter a token through an obscured prompt and save it globally. API access requires `read`, `read:sensitive`, `write` and `deploy` permissions.
+Put the referenced token in the project-root `.env` file or your shell environment. Do not put its value in an argument. Omit `--token-env` to be prompted for the environment variable name, or leave that prompt blank to enter a token through an obscured prompt and save it globally. API access requires `read`, `read:sensitive`, `write` and `deploy` permissions.
 
-Grumpy's default global configuration location is used (`~/Library/Application Support/tug/config.yaml` on macOS, XDG on Linux). Project configuration is `coolify.yaml`. Resolution is local → global → defaults; maps and lists replace lower-precedence values. Context selection is `--context`, then project `context`, then resolved `currentContext`. Local credentials are allowed with a warning that names the setting but never its value.
+Global contexts use Grumpy's default configuration location (`~/Library/Application Support/tug/config.yaml` on macOS, XDG on Linux). The committed `coolify.yaml` contains portable app settings: layout, source, environments, branches, database requirements and variable/secret references. Connection profiles, selected context and public domains do not belong in that manifest.
+
+Each checkout stores its context selection, domain names and any connection overrides in **`.coolify/local.yaml`**, which Tug gitignores along with its state cache and `.env` files. Missing selections are prompted for, including server, destination and GitHub App when a global context omits them. An explicit `--context` takes precedence over the saved selection. On first use, interactive commands offer global contexts; unattended commands can use the global current context, but fail clearly if other required settings are missing. No compatibility/migration layer is provided for the old manifest format.
+
+Example private settings (never commit this file):
+
+```yaml
+context: home
+domains:
+  production:
+    web: app.example.com
+    api: api.example.com
+```
+
+Tug reads `.env` automatically for token references and `secrets.*.fromEnv`. Shell values take precedence, including explicitly empty values. Use `--no-env-file` to ignore the file. Quoted values, multiline values, `export` and comments are supported; dollar signs stay literal and no shell commands or variable expansions run. `.env` entries are not automatically uploaded to Coolify.
+
+Terminal tasks use spinners with success/failure markers, colored diagnostics and clean output when redirected. `--verbose` adds API-operation and deployment-status details without request bodies or credentials. Use `--no-color` or `NO_COLOR` to disable colors.
 
 ## Initialize and deploy
 
@@ -49,9 +65,13 @@ tug apply
 tug status
 ```
 
-`init` and `generate` preserve existing files. Use `generate --force` only after reviewing a requested replacement. The toolchain file pins the Flutter version and Git revision plus the Dart version. The default Flutter URL prefix is `/app/`; set `serverpod.flutterBaseHref: /` for a FlutterRoute mounted at the root.
+`init` writes portable defaults (`source.repository: auto` discovers the clone's Git origin), and saves `--context`, `--web-domain`, and `--api-domain` privately. `init` and `generate` preserve existing build files. Use `generate --force` only after reviewing a requested replacement. The toolchain file pins the Flutter version and Git revision plus the Dart version. The default Flutter URL prefix is `/app/`; set `serverpod.flutterBaseHref: /` for a FlutterRoute mounted at the root.
+
+`tug generate` produces `.coolify/Dockerfile`, `.coolify/Dockerfile.dockerignore`, and `.coolify/toolchains.json`, plus ignore rules. Commit these build files; **do not gitignore the whole `.coolify` directory**. Regenerate when the project layout, Flutter base path, pinned toolchain, Docker exclusion rules, or Tug's build template changes. Normal app-code edits and environment-variable changes do **not** require generation. Push code changes to the configured branch; use `tug apply` for manifest settings and explicit secret references, or `tug config sync` to reimport native Serverpod configuration.
 
 Tug never stages or commits files. Native runtime YAML, passwords, `.env` files and common credential files are excluded from the generated Docker build context. The runtime image contains compiled code, native assets, Flutter assets, migrations and protocol resources. Existing safe tracked Serverpod defaults may remain in Git; they are excluded from Tug's image.
+
+Tug enables and reconciles Coolify's HTTP health check at `http://127.0.0.1:8080/readyz` (GET, expected status 200), using a 10-second interval, 5-second timeout, 3 retries and a 60-second startup grace period. The generated runtime includes a static BusyBox shell and wget so Coolify can execute the check inside the container. Existing projects must review and run `tug generate --force`, then commit the updated Dockerfile before applying this version.
 
 ## Runtime configuration import
 
@@ -59,16 +79,13 @@ During the first apply for each environment, Tug reads local `<server>/config/<c
 
 Supported Serverpod settings become their documented environment variables. Password `jwtSecret` becomes the case-sensitive `SERVERPOD_PASSWORD_jwtSecret`. Unsupported paths or values are rejected before provisioning. Serverpod 4.0 cannot parse explicit null log-retention values from environment strings; choose an explicit supported value. Null future-call concurrency maps to its documented unlimited value.
 
-Tug-owned database/Redis connections, credentials, service secret, ports and domains take precedence. Explicit manifest settings and references take precedence over imported application values:
+Tug-owned database/Redis connections, credentials, service secret, ports and private deployment domains take precedence. Explicit manifest settings and references take precedence over imported application values:
 
 ```yaml
 environments:
   production:
     branch: main
     configMode: production
-    domains:
-      web: app.example.com
-      api: api.example.com
     env:
       SERVERPOD_MAX_REQUEST_SIZE: '1048576'
     secrets:
@@ -83,6 +100,14 @@ tug config sync --environment production
 ```
 
 Synchronization upserts present keys, preserves absent keys, and respects Tug-owned and explicit settings. Remote metadata records imported key names and completion, separately from manifest ownership. Applications must allow Serverpod to read environment configuration; a custom explicit `ServerpodConfig` object can bypass that behavior.
+
+## Deployment health and addresses
+
+By default `apply` waits for both the deployment and a healthy application. Failed/cancelled deployments, unhealthy or exited containers, rollback logs, and unconfirmed health at the polling deadline cause a nonzero exit. `--no-wait` reports submission only; it does not claim deployment success.
+
+The generated runtime includes `wget` and `/bin/sh` for Coolify's health check. Coolify's Dockerfile warning is advisory about the image's required tools, not proof that a tool is missing. Consult the actual health-check output for the failure. Commit and push regenerated Dockerfiles before redeploying: Coolify builds the Git branch, not uncommitted local files.
+
+Public URLs are HTTPS on port 443. The container serves plain HTTP on ports 8080 (API) and 8082 (web), on all container interfaces. Serverpod's `Webserver listening` log currently combines the public hostname with its internal scheme/port; use Tug's explicitly labeled public URLs instead. Do not change the internal port to 443 or bind to localhost, since Coolify's proxy must reach the container.
 
 ## Named environments and destruction
 
