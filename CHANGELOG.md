@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.1](https://github.com/mcquenji/tug/compare/v0.2.0...v0.2.1) (2026-10-02)
+
+### Bug Fixes
+
+* **release:** bump the embedded Dart version with commit-and-tag-version ([b134e98](https://github.com/mcquenji/tug/commit/b134e980e3d15486df00af850d64812e57a4a9df))
+
 ## 0.2.0 (2026-10-02)
 
 ### ⚠ BREAKING CHANGES
