@@ -76,6 +76,71 @@ contexts:
     }
     expect(terminal.output.toString(), isNot(contains('never-print-me')));
   });
+  test(
+    'runtime references decode, round-trip and do not warn as inline secrets',
+    () async {
+      final config = await configFixture(
+        temp,
+        local: '''environments:
+  production:
+    env:
+      OIDC_ISSUER: {fromEnv: LOCAL_ISSUER}
+      API_TOKEN: {fromEnv: LOCAL_TOKEN}
+      APP_THEME: blue
+''',
+      );
+      final resolved = AppConfig.defaults().resolveConfig(config);
+      final env = resolved.environments['production']!.env;
+      expect((env['OIDC_ISSUER'] as SecretReference).fromEnv, 'LOCAL_ISSUER');
+      expect(env['APP_THEME'], 'blue');
+      final encoded = AppConfig.settings.environments.type.encode(
+        resolved.environments,
+      ) as Map;
+      expect(encoded['production']['env']['OIDC_ISSUER'], {
+        'fromEnv': 'LOCAL_ISSUER',
+      });
+      validateOffline({'environments': encoded}, scope: 'local');
+      final terminal = MemoryTerminal();
+      final code = await App(
+        terminal: terminal,
+        files: config.files,
+      ).run(['context', 'list']);
+      expect(code, 0);
+      expect(
+        terminal.errors.toString(),
+        isNot(contains('stores a sensitive value')),
+      );
+    },
+  );
+
+  test('schema and config decoder reject malformed runtime references', () {
+    for (final invalid in [
+      123,
+      true,
+      null,
+      [],
+      {},
+      {'fromEnv': ''},
+      {'fromEnv': 'INVALID-NAME'},
+      {'fromEnv': 123},
+      {'fromEnv': 'VALUE', 'extra': 'hidden-value'},
+    ]) {
+      final environments = {
+        'production': {
+          'env': {'SETTING': invalid},
+        },
+      };
+      expect(
+        () => validateOffline({'environments': environments}, scope: 'local'),
+        throwsException,
+      );
+      expect(
+        () => AppConfig.settings.environments.type.decode(environments),
+        throwsException,
+      );
+    }
+  });
+
   test('offline schema matches canonical and correctly scopes fields', () {
     expect(
       jsonDecode(configSchemaJson),

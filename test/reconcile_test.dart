@@ -173,7 +173,7 @@ environments:
   });
 
   Future<void> explicit({
-    Map<String, String> env = const {},
+    Map<String, Object> env = const {},
     Map<String, SecretReference> secrets = const {},
     Map<String, String> process = const {},
   }) async {
@@ -409,6 +409,74 @@ environments:
       expect(fake.mutations, isEmpty);
     },
   );
+  test('runtime references resolve dotenv and shell values without persisting them', () async {
+    await File('${spec.layout.root}/.env').writeAsString(
+      'LOCAL_ISSUER=https://dotenv.example.com\nOPTIONAL=dotenv-value\nUNREFERENCED=private-extra\n',
+    );
+    final process = await loadEnvironment(
+      spec.layout.root,
+      processEnvironment: {
+        'LOCAL_ISSUER': 'https://shell.example.com',
+        'OPTIONAL': '',
+      },
+    );
+    await explicit(
+      env: {
+        'OIDC_ISSUER': const SecretReference(fromEnv: 'LOCAL_ISSUER'),
+        'OPTIONAL_SETTING': const SecretReference(fromEnv: 'OPTIONAL'),
+        'SERVERPOD_MAX_REQUEST_SIZE': const SecretReference(
+          fromEnv: 'REQUEST_SIZE',
+        ),
+        'APP_THEME': 'blue',
+        'DOLLARS': r'${UNCHANGED}',
+      },
+      process: {...process, 'REQUEST_SIZE': '54321'},
+    );
+    final manifestBefore = await File(configService.local.path).readAsString();
+    await engine.apply(spec, environment: 'production');
+    final values = vars('production');
+    expect(values['OIDC_ISSUER']!['value'], 'https://shell.example.com');
+    expect(values['OPTIONAL_SETTING']!['value'], '');
+    expect(values['SERVERPOD_MAX_REQUEST_SIZE']!['value'], '54321');
+    expect(values['APP_THEME']!['value'], 'blue');
+    expect(values['DOLLARS']!['value'], r'${UNCHANGED}');
+    expect(values.containsKey('SERVERPOD_PASSWORD_OIDC_ISSUER'), isFalse);
+    expect(values.containsKey('UNREFERENCED'), isFalse);
+    expect(manifestBefore, contains('fromEnv'));
+    expect(manifestBefore, isNot(contains('https://shell.example.com')));
+    expect(await File(configService.local.path).readAsString(), manifestBefore);
+  });
+
+  test(
+    'missing runtime references and reserved runtime keys fail before writes',
+    () async {
+      await explicit(
+        env: {'OIDC_ISSUER': const SecretReference(fromEnv: 'MISSING')},
+      );
+      await expectLater(engine.apply(spec), throwsA(isA<TugException>()));
+      expect(fake.mutations, isEmpty);
+      await explicit(
+        env: {
+          'SERVERPOD_PASSWORD_database': const SecretReference(
+            fromEnv: 'DB_VALUE',
+          ),
+        },
+        process: {'DB_VALUE': 'must-not-override'},
+      );
+      await expectLater(engine.apply(spec), throwsA(isA<TugException>()));
+      expect(fake.mutations, isEmpty);
+    },
+  );
+
+  test('empty secret references remain invalid', () async {
+    await explicit(
+      secrets: {'jwtSecret': const SecretReference(fromEnv: 'JWT_SECRET')},
+      process: {'JWT_SECRET': ''},
+    );
+    await expectLater(engine.apply(spec), throwsA(isA<TugException>()));
+    expect(fake.mutations, isEmpty);
+  });
+
   test('completion failure preserves imported ownership on retry', () async {
     fake.failCompletedImport = true;
     await expectLater(

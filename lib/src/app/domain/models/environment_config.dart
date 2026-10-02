@@ -1,6 +1,7 @@
 import 'package:grumpy_cli/grumpy_cli.dart';
 
 import 'database_override.dart';
+import 'environment_variables.dart';
 import 'redis_config.dart';
 import 'secret_reference.dart';
 
@@ -22,9 +23,14 @@ class EnvironmentConfig extends Model {
   /// environment and staging otherwise; the runtime mode remains production.
   final String? configMode;
 
-  /// Literal non-secret runtime environment variables. Tug-managed connection,
-  /// port and credential settings cannot be overridden here. Use secrets for passwords.
-  final Map<String, String> env;
+  /// Runtime environment variables: literal strings or {fromEnv: VARIABLE}
+  /// references read from the shell or .env. Tug-managed connection, port and
+  /// credential settings cannot be overridden. Use secrets for Serverpod passwords.
+  @ConfigField(
+    valueType: environmentVariablesType,
+    schema: environmentVariablesSchema,
+  )
+  final Map<String, Object> env;
 
   /// Serverpod password names mapped to local environment-variable references.
   /// Each value is sent as `SERVERPOD_PASSWORD_<name>`; keep secret values out of this file.

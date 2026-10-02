@@ -114,21 +114,45 @@ class DefaultReconcileService extends ReconcileService {
 
   Map<String, String> _explicit(DeploymentSpec s, String env) {
     final settings = s.config.environments[env]!;
-    final values = {...settings.env};
-    for (final entry in settings.secrets.entries) {
-      final reference = entry.value.fromEnv;
+    String resolve(
+      SecretReference source,
+      String field, {
+      bool allowEmpty = false,
+    }) {
+      final reference = source.fromEnv;
       if (!RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$').hasMatch(reference)) {
         throw TugException(
-          'Invalid secret reference environments.$env.secrets.${entry.key}.fromEnv.',
+          'Invalid environment reference environments.$env.$field.fromEnv.',
         );
       }
       final value = s.processEnvironment[reference];
-      if (value == null || value.isEmpty) {
+      if (value == null || (!allowEmpty && value.isEmpty)) {
         throw TugException(
-          'Missing environment variable $reference for environments.$env.secrets.${entry.key}.',
+          'Missing environment variable $reference for environments.$env.$field.',
         );
       }
-      values['SERVERPOD_PASSWORD_${entry.key}'] = value;
+      return value;
+    }
+
+    final values = <String, String>{};
+    for (final entry in settings.env.entries) {
+      values[entry.key] = switch (entry.value) {
+        String value => value,
+        SecretReference reference => resolve(
+          reference,
+          'env.${entry.key}',
+          allowEmpty: true,
+        ),
+        _ => throw TugException(
+          'Invalid runtime value environments.$env.env.${entry.key}.',
+        ),
+      };
+    }
+    for (final entry in settings.secrets.entries) {
+      values['SERVERPOD_PASSWORD_${entry.key}'] = resolve(
+        entry.value,
+        'secrets.${entry.key}',
+      );
     }
     for (final key in values.keys) {
       if (!RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$').hasMatch(key)) {

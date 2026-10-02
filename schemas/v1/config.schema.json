@@ -190,9 +190,26 @@
               "env": {
                 "type": "object",
                 "additionalProperties": {
-                  "type": "string"
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "fromEnv"
+                      ],
+                      "properties": {
+                        "fromEnv": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                        }
+                      }
+                    }
+                  ]
                 },
-                "description": "Literal non-secret runtime environment variables. Tug-managed connection,\nport and credential settings cannot be overridden here. Use secrets for passwords.",
+                "description": "Runtime environment variables: literal strings or {fromEnv: VARIABLE}\nreferences read from the shell or .env. Tug-managed connection, port and\ncredential settings cannot be overridden. Use secrets for Serverpod passwords.",
                 "default": {}
               },
               "redis": {
@@ -222,7 +239,7 @@
                   "properties": {
                     "fromEnv": {
                       "type": "string",
-                      "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                      "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                       "default": ""
                     }
                   },

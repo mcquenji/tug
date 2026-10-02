@@ -43,10 +43,11 @@ void warnLocalSensitiveValues(CommandContext c) {
               <String, EnvironmentConfig>{})
           .entries) {
     for (final variable in entry.value.env.entries) {
-      if (sensitiveName(variable.key)) {
+      final value = variable.value;
+      if (value is String && sensitiveName(variable.key)) {
         warn('environments.${entry.key}.env.${variable.key}');
         if (c.terminal is SafeTerminalService) {
-          (c.terminal as SafeTerminalService).secrets.add(variable.value);
+          (c.terminal as SafeTerminalService).secrets.add(value);
         }
       }
     }

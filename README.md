@@ -54,7 +54,7 @@ domains:
     api: api.example.com
 ```
 
-Tug reads `.env` automatically for token references and `secrets.*.fromEnv`. Shell values take precedence, including explicitly empty values. Use `--no-env-file` to ignore the file. Quoted values, multiline values, `export` and comments are supported; dollar signs stay literal and no shell commands or variable expansions run. `.env` entries are not automatically uploaded to Coolify.
+Tug reads `.env` automatically for token references, `env.*.fromEnv` and `secrets.*.fromEnv`. Runtime `env` entries accept either literal strings or `{fromEnv: VARIABLE}`; references are sent under the exact runtime key without the `SERVERPOD_PASSWORD_` prefix. Missing variables fail before remote writes; explicitly empty runtime values are allowed, while secret references must be nonempty. References are resolved at deployment time and their values are never written back to the manifest. Shell values take precedence, including explicitly empty values. Use `--no-env-file` to ignore the file. Quoted values, multiline values, `export` and comments are supported; dollar signs stay literal and no shell commands or variable expansions run. `.env` entries are not automatically uploaded to Coolify.
 
 Terminal tasks use spinners with success/failure markers, colored diagnostics and clean output when redirected. `--verbose` adds API-operation and deployment-status details without request bodies or credentials. Use `--no-color` or `NO_COLOR` to disable colors.
 
@@ -96,6 +96,8 @@ environments:
     configMode: production
     env:
       SERVERPOD_MAX_REQUEST_SIZE: '1048576'
+      OIDC_ISSUER:
+        fromEnv: OIDC_ISSUER
     secrets:
       jwtSecret:
         fromEnv: PRODUCTION_JWT_SECRET

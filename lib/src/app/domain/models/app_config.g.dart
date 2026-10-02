@@ -5,17 +5,18 @@ import "package:tug/src/app/domain/models/domain_config.dart" as _c0;
 import "package:tug/src/app/domain/models/coolify_context.dart" as _c1;
 import "package:tug/src/app/domain/models/database_config.dart" as _c2;
 import "package:tug/src/app/domain/models/database_override.dart" as _c3;
-import "package:tug/src/app/domain/models/redis_config.dart" as _c4;
-import "package:tug/src/app/domain/models/secret_reference.dart" as _c5;
-import "package:tug/src/app/domain/models/environment_config.dart" as _c6;
-import "package:tug/src/app/domain/models/serverpod_config.dart" as _c7;
-import "package:tug/src/app/domain/models/source_config.dart" as _c8;
-import "package:tug/src/app/domain/models/global_config.dart" as _c9;
-import "package:tug/src/app/domain/models/local_config.dart" as _c10;
+import "package:tug/src/app/domain/models/environment_variables.dart" as _c4;
+import "package:tug/src/app/domain/models/redis_config.dart" as _c5;
+import "package:tug/src/app/domain/models/secret_reference.dart" as _c6;
+import "package:tug/src/app/domain/models/environment_config.dart" as _c7;
+import "package:tug/src/app/domain/models/serverpod_config.dart" as _c8;
+import "package:tug/src/app/domain/models/source_config.dart" as _c9;
+import "package:tug/src/app/domain/models/global_config.dart" as _c10;
+import "package:tug/src/app/domain/models/local_config.dart" as _c11;
 
 /// Immutable configuration resolved for the current application invocation.
 final class AppConfig extends CliConfig<AppConfig>
-    implements _c9.GlobalConfig, _c10.LocalConfig {
+    implements _c10.GlobalConfig, _c11.LocalConfig {
   AppConfig._({
     required this.contexts,
     required this.currentContext,
@@ -38,11 +39,11 @@ final class AppConfig extends CliConfig<AppConfig>
     database: settings.database.defaultValue as _c2.DatabaseConfig,
     environments:
         settings.environments.defaultValue
-            as Map<String, _c6.EnvironmentConfig>,
+            as Map<String, _c7.EnvironmentConfig>,
     name: settings.name.defaultValue as String?,
-    redis: settings.redis.defaultValue as _c4.RedisConfig,
-    serverpod: settings.serverpod.defaultValue as _c7.ServerpodConfig?,
-    source: settings.source.defaultValue as _c8.SourceConfig,
+    redis: settings.redis.defaultValue as _c5.RedisConfig,
+    serverpod: settings.serverpod.defaultValue as _c8.ServerpodConfig?,
+    source: settings.source.defaultValue as _c9.SourceConfig,
     version: settings.version.defaultValue as int,
   );
 
@@ -63,7 +64,7 @@ final class AppConfig extends CliConfig<AppConfig>
 
   /// Named, isolated deployments with their own branches, databases and runtime settings.
   @override
-  final Map<String, _c6.EnvironmentConfig> environments;
+  final Map<String, _c7.EnvironmentConfig> environments;
 
   /// Stable project name used to identify managed resources.
   @override
@@ -71,16 +72,16 @@ final class AppConfig extends CliConfig<AppConfig>
 
   /// Default Redis setting for all environments; individual environments can override it.
   @override
-  final _c4.RedisConfig redis;
+  final _c5.RedisConfig redis;
 
   /// Serverpod and Flutter package paths and build options. Omit to discover
   /// the packages automatically and use the default build options.
   @override
-  final _c7.ServerpodConfig? serverpod;
+  final _c8.ServerpodConfig? serverpod;
 
   /// Git repository shared by all deployment environments.
   @override
-  final _c8.SourceConfig source;
+  final _c9.SourceConfig source;
 
   /// Manifest format version.
   @override
@@ -110,11 +111,11 @@ final class AppConfig extends CliConfig<AppConfig>
     database: service.get(settings.database) as _c2.DatabaseConfig,
     environments: service.get(
       settings.environments,
-    ) as Map<String, _c6.EnvironmentConfig>,
+    ) as Map<String, _c7.EnvironmentConfig>,
     name: service.get(settings.name) as String?,
-    redis: service.get(settings.redis) as _c4.RedisConfig,
-    serverpod: service.get(settings.serverpod) as _c7.ServerpodConfig?,
-    source: service.get(settings.source) as _c8.SourceConfig,
+    redis: service.get(settings.redis) as _c5.RedisConfig,
+    serverpod: service.get(settings.serverpod) as _c8.ServerpodConfig?,
+    source: service.get(settings.source) as _c9.SourceConfig,
     version: service.get(settings.version) as int,
   );
 }
@@ -622,10 +623,10 @@ final class AppConfigSettings extends Model {
   );
 
   /// Named, isolated deployments with their own branches, databases and runtime settings.
-  final environments = ConfigSetting<Map<String, _c6.EnvironmentConfig>>(
+  final environments = ConfigSetting<Map<String, _c7.EnvironmentConfig>>(
     "environments",
     type: CliValueType.map(
-      CliValueType.object<_c6.EnvironmentConfig>(
+      CliValueType.object<_c7.EnvironmentConfig>(
         properties: {
           "branch": CliValueType.string(),
           "configMode": CliValueType.string().nullable(),
@@ -667,11 +668,11 @@ final class AppConfigSettings extends Model {
                   },
                 },
               }),
-          "env": CliValueType.map(CliValueType.string()),
+          "env": _c4.environmentVariablesType(),
           "redis":
-              CliValueType.object<_c4.RedisConfig>(
+              CliValueType.object<_c5.RedisConfig>(
                 properties: {"enabled": CliValueType.boolean()},
-                fromJson: (json) => _c4.RedisConfig(
+                fromJson: (json) => _c5.RedisConfig(
                   enabled: CliValueType.boolean().decode(
                     json.containsKey("enabled") ? json["enabled"] : false,
                   ),
@@ -689,9 +690,9 @@ final class AppConfigSettings extends Model {
                 },
               }).nullable(),
           "secrets": CliValueType.map(
-            CliValueType.object<_c5.SecretReference>(
+            CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
-              fromJson: (json) => _c5.SecretReference(
+              fromJson: (json) => _c6.SecretReference(
                 fromEnv: CliValueType.string().decode(
                   json.containsKey("fromEnv") ? json["fromEnv"] : "",
                 ),
@@ -703,14 +704,14 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
             }),
           ),
         },
-        fromJson: (json) => _c6.EnvironmentConfig(
+        fromJson: (json) => _c7.EnvironmentConfig(
           branch: CliValueType.string().decode(
             json.containsKey("branch") ? json["branch"] : "main",
           ),
@@ -765,12 +766,13 @@ final class AppConfigSettings extends Model {
                         ? json["database"]
                         : {"name": null, "user": null},
                   ),
-          env: CliValueType.map(CliValueType.string())
-              .decode(json.containsKey("env") ? json["env"] : {}),
+          env: _c4.environmentVariablesType().decode(
+            json.containsKey("env") ? json["env"] : {},
+          ),
           redis:
-              CliValueType.object<_c4.RedisConfig>(
+              CliValueType.object<_c5.RedisConfig>(
                     properties: {"enabled": CliValueType.boolean()},
-                    fromJson: (json) => _c4.RedisConfig(
+                    fromJson: (json) => _c5.RedisConfig(
                       enabled: CliValueType.boolean().decode(
                         json.containsKey("enabled") ? json["enabled"] : false,
                       ),
@@ -791,9 +793,9 @@ final class AppConfigSettings extends Model {
                   .nullable()
                   .decode(json.containsKey("redis") ? json["redis"] : null),
           secrets: CliValueType.map(
-            CliValueType.object<_c5.SecretReference>(
+            CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
-              fromJson: (json) => _c5.SecretReference(
+              fromJson: (json) => _c6.SecretReference(
                 fromEnv: CliValueType.string().decode(
                   json.containsKey("fromEnv") ? json["fromEnv"] : "",
                 ),
@@ -805,7 +807,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
@@ -861,11 +863,11 @@ final class AppConfigSettings extends Model {
                     },
                   })
                   .encode(value.database),
-          "env": CliValueType.map(CliValueType.string()).encode(value.env),
+          "env": _c4.environmentVariablesType().encode(value.env),
           "redis":
-              CliValueType.object<_c4.RedisConfig>(
+              CliValueType.object<_c5.RedisConfig>(
                     properties: {"enabled": CliValueType.boolean()},
-                    fromJson: (json) => _c4.RedisConfig(
+                    fromJson: (json) => _c5.RedisConfig(
                       enabled: CliValueType.boolean().decode(
                         json.containsKey("enabled") ? json["enabled"] : false,
                       ),
@@ -886,9 +888,9 @@ final class AppConfigSettings extends Model {
                   .nullable()
                   .encode(value.redis),
           "secrets": CliValueType.map(
-            CliValueType.object<_c5.SecretReference>(
+            CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
-              fromJson: (json) => _c5.SecretReference(
+              fromJson: (json) => _c6.SecretReference(
                 fromEnv: CliValueType.string().decode(
                   json.containsKey("fromEnv") ? json["fromEnv"] : "",
                 ),
@@ -900,7 +902,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
@@ -948,8 +950,23 @@ final class AppConfigSettings extends Model {
           },
           "env": {
             "type": "object",
-            "additionalProperties": {"type": "string"},
-            "description": "Literal non-secret runtime environment variables. Tug-managed connection,\nport and credential settings cannot be overridden here. Use secrets for passwords.",
+            "additionalProperties": {
+              "oneOf": [
+                {"type": "string"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["fromEnv"],
+                  "properties": {
+                    "fromEnv": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*\$",
+                    },
+                  },
+                },
+              ],
+            },
+            "description": "Runtime environment variables: literal strings or {fromEnv: VARIABLE}\nreferences read from the shell or .env. Tug-managed connection, port and\ncredential settings cannot be overridden. Use secrets for Serverpod passwords.",
             "default": {},
           },
           "redis": {
@@ -977,7 +994,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
@@ -991,7 +1008,7 @@ final class AppConfigSettings extends Model {
     ),
     description: "Named, isolated deployments with their own branches, databases and runtime settings.",
     defaultValue: CliValueType.map(
-      CliValueType.object<_c6.EnvironmentConfig>(
+      CliValueType.object<_c7.EnvironmentConfig>(
         properties: {
           "branch": CliValueType.string(),
           "configMode": CliValueType.string().nullable(),
@@ -1033,11 +1050,11 @@ final class AppConfigSettings extends Model {
                   },
                 },
               }),
-          "env": CliValueType.map(CliValueType.string()),
+          "env": _c4.environmentVariablesType(),
           "redis":
-              CliValueType.object<_c4.RedisConfig>(
+              CliValueType.object<_c5.RedisConfig>(
                 properties: {"enabled": CliValueType.boolean()},
-                fromJson: (json) => _c4.RedisConfig(
+                fromJson: (json) => _c5.RedisConfig(
                   enabled: CliValueType.boolean().decode(
                     json.containsKey("enabled") ? json["enabled"] : false,
                   ),
@@ -1055,9 +1072,9 @@ final class AppConfigSettings extends Model {
                 },
               }).nullable(),
           "secrets": CliValueType.map(
-            CliValueType.object<_c5.SecretReference>(
+            CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
-              fromJson: (json) => _c5.SecretReference(
+              fromJson: (json) => _c6.SecretReference(
                 fromEnv: CliValueType.string().decode(
                   json.containsKey("fromEnv") ? json["fromEnv"] : "",
                 ),
@@ -1069,14 +1086,14 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
             }),
           ),
         },
-        fromJson: (json) => _c6.EnvironmentConfig(
+        fromJson: (json) => _c7.EnvironmentConfig(
           branch: CliValueType.string().decode(
             json.containsKey("branch") ? json["branch"] : "main",
           ),
@@ -1131,12 +1148,13 @@ final class AppConfigSettings extends Model {
                         ? json["database"]
                         : {"name": null, "user": null},
                   ),
-          env: CliValueType.map(CliValueType.string())
-              .decode(json.containsKey("env") ? json["env"] : {}),
+          env: _c4.environmentVariablesType().decode(
+            json.containsKey("env") ? json["env"] : {},
+          ),
           redis:
-              CliValueType.object<_c4.RedisConfig>(
+              CliValueType.object<_c5.RedisConfig>(
                     properties: {"enabled": CliValueType.boolean()},
-                    fromJson: (json) => _c4.RedisConfig(
+                    fromJson: (json) => _c5.RedisConfig(
                       enabled: CliValueType.boolean().decode(
                         json.containsKey("enabled") ? json["enabled"] : false,
                       ),
@@ -1157,9 +1175,9 @@ final class AppConfigSettings extends Model {
                   .nullable()
                   .decode(json.containsKey("redis") ? json["redis"] : null),
           secrets: CliValueType.map(
-            CliValueType.object<_c5.SecretReference>(
+            CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
-              fromJson: (json) => _c5.SecretReference(
+              fromJson: (json) => _c6.SecretReference(
                 fromEnv: CliValueType.string().decode(
                   json.containsKey("fromEnv") ? json["fromEnv"] : "",
                 ),
@@ -1171,7 +1189,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
@@ -1227,11 +1245,11 @@ final class AppConfigSettings extends Model {
                     },
                   })
                   .encode(value.database),
-          "env": CliValueType.map(CliValueType.string()).encode(value.env),
+          "env": _c4.environmentVariablesType().encode(value.env),
           "redis":
-              CliValueType.object<_c4.RedisConfig>(
+              CliValueType.object<_c5.RedisConfig>(
                     properties: {"enabled": CliValueType.boolean()},
-                    fromJson: (json) => _c4.RedisConfig(
+                    fromJson: (json) => _c5.RedisConfig(
                       enabled: CliValueType.boolean().decode(
                         json.containsKey("enabled") ? json["enabled"] : false,
                       ),
@@ -1252,9 +1270,9 @@ final class AppConfigSettings extends Model {
                   .nullable()
                   .encode(value.redis),
           "secrets": CliValueType.map(
-            CliValueType.object<_c5.SecretReference>(
+            CliValueType.object<_c6.SecretReference>(
               properties: {"fromEnv": CliValueType.string()},
-              fromJson: (json) => _c5.SecretReference(
+              fromJson: (json) => _c6.SecretReference(
                 fromEnv: CliValueType.string().decode(
                   json.containsKey("fromEnv") ? json["fromEnv"] : "",
                 ),
@@ -1266,7 +1284,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
@@ -1314,8 +1332,23 @@ final class AppConfigSettings extends Model {
           },
           "env": {
             "type": "object",
-            "additionalProperties": {"type": "string"},
-            "description": "Literal non-secret runtime environment variables. Tug-managed connection,\nport and credential settings cannot be overridden here. Use secrets for passwords.",
+            "additionalProperties": {
+              "oneOf": [
+                {"type": "string"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["fromEnv"],
+                  "properties": {
+                    "fromEnv": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*\$",
+                    },
+                  },
+                },
+              ],
+            },
+            "description": "Runtime environment variables: literal strings or {fromEnv: VARIABLE}\nreferences read from the shell or .env. Tug-managed connection, port and\ncredential settings cannot be overridden. Use secrets for Serverpod passwords.",
             "default": {},
           },
           "redis": {
@@ -1343,7 +1376,7 @@ final class AppConfigSettings extends Model {
               "properties": {
                 "fromEnv": {
                   "type": "string",
-                  "description": "Name of the variable supplying this Serverpod password. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
+                  "description": "Name of the variable supplying this runtime value. Read from the shell\nor .env unless --no-env-file is set; shell values take precedence. The value\nis never written to the shared manifest.",
                   "default": "",
                 },
               },
@@ -1372,12 +1405,12 @@ final class AppConfigSettings extends Model {
   );
 
   /// Default Redis setting for all environments; individual environments can override it.
-  final redis = ConfigSetting<_c4.RedisConfig>(
+  final redis = ConfigSetting<_c5.RedisConfig>(
     "redis",
     type:
-        CliValueType.object<_c4.RedisConfig>(
+        CliValueType.object<_c5.RedisConfig>(
           properties: {"enabled": CliValueType.boolean()},
-          fromJson: (json) => _c4.RedisConfig(
+          fromJson: (json) => _c5.RedisConfig(
             enabled: CliValueType.boolean().decode(
               json.containsKey("enabled") ? json["enabled"] : false,
             ),
@@ -1396,9 +1429,9 @@ final class AppConfigSettings extends Model {
         }),
     description: "Default Redis setting for all environments; individual environments can override it.",
     defaultValue:
-        CliValueType.object<_c4.RedisConfig>(
+        CliValueType.object<_c5.RedisConfig>(
               properties: {"enabled": CliValueType.boolean()},
-              fromJson: (json) => _c4.RedisConfig(
+              fromJson: (json) => _c5.RedisConfig(
                 enabled: CliValueType.boolean().decode(
                   json.containsKey("enabled") ? json["enabled"] : false,
                 ),
@@ -1424,17 +1457,17 @@ final class AppConfigSettings extends Model {
 
   /// Serverpod and Flutter package paths and build options. Omit to discover
   /// the packages automatically and use the default build options.
-  final serverpod = ConfigSetting<_c7.ServerpodConfig?>(
+  final serverpod = ConfigSetting<_c8.ServerpodConfig?>(
     "serverpod",
     type:
-        CliValueType.object<_c7.ServerpodConfig>(
+        CliValueType.object<_c8.ServerpodConfig>(
           properties: {
             "flutter": CliValueType.string(),
             "flutterBaseHref": CliValueType.string(),
             "migrations": CliValueType.boolean(),
             "server": CliValueType.string(),
           },
-          fromJson: (json) => _c7.ServerpodConfig(
+          fromJson: (json) => _c8.ServerpodConfig(
             flutter: CliValueType.string().decode(
               json.containsKey("flutter") ? json["flutter"] : "",
             ),
@@ -1485,14 +1518,14 @@ final class AppConfigSettings extends Model {
         }).nullable(),
     description: "Serverpod and Flutter package paths and build options. Omit to discover\nthe packages automatically and use the default build options.",
     defaultValue:
-        CliValueType.object<_c7.ServerpodConfig>(
+        CliValueType.object<_c8.ServerpodConfig>(
               properties: {
                 "flutter": CliValueType.string(),
                 "flutterBaseHref": CliValueType.string(),
                 "migrations": CliValueType.boolean(),
                 "server": CliValueType.string(),
               },
-              fromJson: (json) => _c7.ServerpodConfig(
+              fromJson: (json) => _c8.ServerpodConfig(
                 flutter: CliValueType.string().decode(
                   json.containsKey("flutter") ? json["flutter"] : "",
                 ),
@@ -1550,12 +1583,12 @@ final class AppConfigSettings extends Model {
   );
 
   /// Git repository shared by all deployment environments.
-  final source = ConfigSetting<_c8.SourceConfig>(
+  final source = ConfigSetting<_c9.SourceConfig>(
     "source",
     type:
-        CliValueType.object<_c8.SourceConfig>(
+        CliValueType.object<_c9.SourceConfig>(
           properties: {"repository": CliValueType.string()},
-          fromJson: (json) => _c8.SourceConfig(
+          fromJson: (json) => _c9.SourceConfig(
             repository: CliValueType.string().decode(
               json.containsKey("repository") ? json["repository"] : "auto",
             ),
@@ -1574,9 +1607,9 @@ final class AppConfigSettings extends Model {
         }),
     description: "Git repository shared by all deployment environments.",
     defaultValue:
-        CliValueType.object<_c8.SourceConfig>(
+        CliValueType.object<_c9.SourceConfig>(
               properties: {"repository": CliValueType.string()},
-              fromJson: (json) => _c8.SourceConfig(
+              fromJson: (json) => _c9.SourceConfig(
                 repository: CliValueType.string().decode(
                   json.containsKey("repository") ? json["repository"] : "auto",
                 ),
