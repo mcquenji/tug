@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.2.2](https://github.com/mcquenji/tug/compare/v0.2.1...v0.2.2) (2026-10-02)
+
+### Features
+
+* add support for custom resource names ([aacc4d8](https://github.com/mcquenji/tug/commit/aacc4d86f23adfd2022044106da3edfbf3e95192))
+
 ## [0.2.1](https://github.com/mcquenji/tug/compare/v0.2.0...v0.2.1) (2026-10-02)
 
 ### Bug Fixes

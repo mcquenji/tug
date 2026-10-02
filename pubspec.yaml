@@ -1,6 +1,6 @@
 name: tug
 description: Bootstrap and reconcile Serverpod deployments on Coolify.
-version: 0.2.1
+version: 0.2.2
 publish_to: none
 environment:
   sdk: ^3.13.0
