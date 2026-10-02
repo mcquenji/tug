@@ -104,6 +104,74 @@ environments:
   Map<String, Map<String, dynamic>> vars(String env) =>
       fake.variables[app(env)['uuid']]!;
 
+  for (final state in ['running:unhealthy', 'exited', 'running:unknown']) {
+    test(
+      'finished deployment with $state application is not success',
+      () async {
+        fake.deployedApplicationStatus = state;
+        await expectLater(
+          engine.apply(spec, environment: 'production'),
+          throwsA(isA<TugException>()),
+        );
+        expect(
+          terminal.output.toString(),
+          isNot(contains('application is healthy')),
+        );
+        expect(terminal.errors.toString(), contains('Deployment'));
+      },
+    );
+  }
+
+  test('rollback failure logs override finished status and an old healthy container', () async {
+    fake.deploymentLogs =
+        'New container is unhealthy. Rolling back. secret=never-print-me';
+    await expectLater(
+      engine.apply(spec, environment: 'production'),
+      throwsA(isA<TugException>()),
+    );
+    expect(
+      terminal.output.toString(),
+      isNot(contains('application is healthy')),
+    );
+    expect(terminal.errors.toString(), isNot(contains('never-print-me')));
+  });
+
+  test(
+    'generic Docker healthcheck warning is not itself a deployment failure',
+    () async {
+      fake.deploymentLogs =
+          'WARNING: Dockerfile deployment healthcheck needs curl or wget.';
+      await engine.apply(spec, environment: 'production');
+      expect(terminal.output.toString(), contains('application is healthy'));
+      expect(
+        terminal.output.toString(),
+        contains('Web  https://test.example.com'),
+      );
+      expect(vars('production')['SERVERPOD_WEB_SERVER_PORT']!['value'], '8082');
+      expect(
+        vars('production')['SERVERPOD_WEB_SERVER_PUBLIC_PORT']!['value'],
+        '443',
+      );
+      expect(
+        vars('production')['SERVERPOD_WEB_SERVER_PUBLIC_SCHEME']!['value'],
+        'https',
+      );
+    },
+  );
+
+  test('no-wait reports submission without claiming verified health', () async {
+    fake.deployedApplicationStatus = 'running:unhealthy';
+    await engine.apply(spec, environment: 'production', wait: false);
+    expect(
+      terminal.errors.toString(),
+      contains('health has not been verified'),
+    );
+    expect(
+      terminal.output.toString(),
+      isNot(contains('application is healthy')),
+    );
+  });
+
   Future<void> explicit({
     Map<String, String> env = const {},
     Map<String, SecretReference> secrets = const {},
@@ -197,6 +265,73 @@ environments:
         ),
       );
       expect(fake.mutations, isEmpty);
+    },
+  );
+
+  test(
+    'apply configures and repairs the Serverpod readiness health check',
+    () async {
+      const desired = {
+        'health_check_enabled': true,
+        'health_check_type': 'http',
+        'health_check_path': '/readyz',
+        'health_check_port': '8080',
+        'health_check_host': '127.0.0.1',
+        'health_check_method': 'GET',
+        'health_check_scheme': 'http',
+        'health_check_return_code': 200,
+        'health_check_response_text': '',
+        'health_check_interval': 10,
+        'health_check_timeout': 5,
+        'health_check_retries': 3,
+        'health_check_start_period': 60,
+      };
+      await engine.apply(spec, environment: 'production');
+      final application = app('production');
+      for (final entry in desired.entries) {
+        expect(application[entry.key], entry.value, reason: entry.key);
+      }
+      final deployments = fake.deployments.length;
+      application.addAll({
+        'health_check_enabled': false,
+        'health_check_type': 'cmd',
+        'health_check_path': '/wrong',
+        'health_check_port': '8082',
+        'health_check_host': 'example.com',
+        'health_check_method': 'POST',
+        'health_check_scheme': 'https',
+        'health_check_return_code': 201,
+        'health_check_response_text': 'wrong',
+        'health_check_interval': 1,
+        'health_check_timeout': 1,
+        'health_check_retries': 1,
+        'health_check_start_period': 0,
+      });
+      final writes = fake.mutations.length;
+      await engine.apply(spec, environment: 'production', plan: true);
+      expect(fake.mutations.length, writes);
+      expect(application['health_check_enabled'], false);
+      await engine.apply(spec, environment: 'production');
+      for (final entry in desired.entries) {
+        expect(application[entry.key], entry.value, reason: entry.key);
+      }
+      expect(fake.deployments.length, deployments + 1);
+      // Coolify versions may serialize numeric settings as strings and empty text as null.
+      application['health_check_response_text'] = null;
+      application['health_check_enabled'] = 1;
+      application['health_check_port'] = 8080;
+      for (final key in [
+        'health_check_return_code',
+        'health_check_interval',
+        'health_check_timeout',
+        'health_check_retries',
+        'health_check_start_period',
+      ]) {
+        application[key] = '${application[key]}';
+      }
+      final repairedWrites = fake.mutations.length;
+      await engine.apply(spec, environment: 'production');
+      expect(fake.mutations.length, repairedWrites);
     },
   );
 
@@ -534,7 +669,7 @@ environments:
   test('one environment failure preserves progress in the other', () async {
     fake.failEnvironment = 'staging';
     await expectLater(engine.apply(spec), throwsA(isA<TugException>()));
-    expect(app('production')['status'], 'running');
+    expect(app('production')['status'], 'running:healthy');
     fake.failEnvironment = null;
     await engine.apply(spec);
     expect(fake.resources, hasLength(6));

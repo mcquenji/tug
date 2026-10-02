@@ -25,6 +25,19 @@ class RemoteResource extends Model {
     this.forceHttps,
     this.baseDirectory,
     this.previewEnabled,
+    this.healthCheckEnabled,
+    this.healthCheckType,
+    this.healthCheckPath,
+    this.healthCheckPort,
+    this.healthCheckHost,
+    this.healthCheckMethod,
+    this.healthCheckScheme,
+    this.healthCheckReturnCode,
+    this.healthCheckResponseText,
+    this.healthCheckInterval,
+    this.healthCheckTimeout,
+    this.healthCheckRetries,
+    this.healthCheckStartPeriod,
   });
   final String uuid, name, kind, description, status;
   final List<String> tags;
@@ -38,6 +51,19 @@ class RemoteResource extends Model {
   final String? baseDirectory;
   final bool isPublic;
   final bool? forceHttps, previewEnabled;
+  final bool? healthCheckEnabled;
+  final String? healthCheckType,
+      healthCheckPath,
+      healthCheckPort,
+      healthCheckHost,
+      healthCheckMethod,
+      healthCheckScheme,
+      healthCheckResponseText;
+  final int? healthCheckReturnCode,
+      healthCheckInterval,
+      healthCheckTimeout,
+      healthCheckRetries,
+      healthCheckStartPeriod;
   bool get running =>
       status.startsWith('running') && !status.contains('unhealthy');
 }

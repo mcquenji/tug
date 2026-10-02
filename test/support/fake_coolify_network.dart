@@ -18,6 +18,8 @@ class FakeCoolifyNetwork extends NetworkService {
   bool failDeploymentAcknowledgement = false;
   bool loseDeploymentResponse = false;
   String deploymentStatus = 'finished';
+  String deployedApplicationStatus = 'running:healthy';
+  String deploymentLogs = 'ready';
   String? failEnvironment;
   int readsToRateLimit = 0;
   int counter = 0;
@@ -204,9 +206,9 @@ class FakeCoolifyNetwork extends NetworkService {
           'deployment_uuid': uuid,
           'app': payload['uuid'],
           'status': deploymentStatus,
-          'logs': 'ready',
+          'logs': deploymentLogs,
         };
-        resources[payload['uuid']]!['status'] = 'running';
+        resources[payload['uuid']]!['status'] = deployedApplicationStatus;
         if (loseDeploymentResponse) {
           loseDeploymentResponse = false;
           return response({'message': 'accepted response lost'}, 503);

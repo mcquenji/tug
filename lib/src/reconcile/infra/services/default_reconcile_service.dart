@@ -788,7 +788,20 @@ class DefaultReconcileService extends ReconcileService {
           app.baseDirectory != '/' ||
           app.ports != '8080,8082' ||
           app.forceHttps != true ||
-          app.previewEnabled != false) {
+          app.previewEnabled != false ||
+          app.healthCheckEnabled != true ||
+          app.healthCheckType != 'http' ||
+          app.healthCheckPath != '/readyz' ||
+          app.healthCheckPort != '8080' ||
+          app.healthCheckHost != '127.0.0.1' ||
+          app.healthCheckMethod != 'GET' ||
+          app.healthCheckScheme != 'http' ||
+          app.healthCheckReturnCode != 200 ||
+          (app.healthCheckResponseText ?? '').isNotEmpty ||
+          app.healthCheckInterval != 10 ||
+          app.healthCheckTimeout != 5 ||
+          app.healthCheckRetries != 3 ||
+          app.healthCheckStartPeriod != 60) {
         terminal.writeln('${e.name}: update managed application fields.');
         changed = true;
         if (!plan) {
@@ -963,14 +976,16 @@ class DefaultReconcileService extends ReconcileService {
     if (!changed && accepted) {
       if (!plan) {
         await clearPending();
-        if (wait && !last.finished) await _waitDeployment(e.name, last.uuid);
+        if (wait) await _waitDeployment(e.name, last.uuid, e.application!.uuid);
       }
     } else if (!changed &&
         !pending &&
         last != null &&
         !last.finished &&
         !last.failed) {
-      if (wait && !plan) await _waitDeployment(e.name, last.uuid);
+      if (wait && !plan) {
+        await _waitDeployment(e.name, last.uuid, e.application!.uuid);
+      }
     } else if (changed ||
         pending ||
         last == null ||
@@ -980,7 +995,7 @@ class DefaultReconcileService extends ReconcileService {
       if (!plan) {
         if (last != null && !last.finished && !last.failed) {
           if (wait) {
-            await _waitDeployment(e.name, last.uuid);
+            await _waitDeployment(e.name, last.uuid, e.application!.uuid);
           }
           throw const TugException(
             'An earlier deployment was already running. Rerun apply after it finishes to deploy pending changes.',
@@ -1001,9 +1016,25 @@ class DefaultReconcileService extends ReconcileService {
           id = accepted.uuid;
         }
         await clearPending();
-        if (wait) await _waitDeployment(e.name, id);
+        if (wait) await _waitDeployment(e.name, id, e.application!.uuid);
       }
       changed = true;
+    }
+    if (!plan && wait && !changed && last?.finished == true && !accepted) {
+      await _waitDeployment(e.name, last!.uuid, e.application!.uuid);
+    }
+    if (!plan) {
+      if (!wait) {
+        terminal.warning(
+          '${e.name}: deployment submitted; health has not been verified (--no-wait).',
+        );
+      }
+      terminal.writeln(
+        '${e.name} public URLs:\n  Web  https://${e.domains['web']}\n  API  https://${e.domains['api']}',
+      );
+      terminal.detail(
+        'Container HTTP listeners: API :8080, web :8082. Coolify terminates public HTTPS on :443.',
+      );
     }
     if (!plan && project != null) await _cache(s, project, e);
     return changed;
@@ -1057,31 +1088,54 @@ class DefaultReconcileService extends ReconcileService {
     };
   }
 
-  Future<void> _waitDeployment(String env, String id) async {
+  Future<void> _waitDeployment(
+    String env,
+    String id,
+    String application,
+  ) => terminal.task('$env: deploy and verify application health', () async {
     for (var i = 0; i < pollLimit; i++) {
       final deployment = await remote.deployment(id);
-      if (deployment.finished) {
-        terminal.writeln('$env: deployment finished.');
-        return;
-      }
       if (deployment.failed) {
         final logs = redact(deployment.logs, _redactions);
         terminal.errorln(
           logs.split('\n').reversed.take(40).toList().reversed.join('\n'),
         );
         throw TugException(
-          'Deployment $id failed. Check build locks, migrations, private database connectivity and runtime configuration.',
+          'Deployment $id failed. Check build logs, health checks, migrations and database connectivity.',
         );
       }
-      if (i % 6 == 0) {
-        terminal.errorln('$env: deployment ${deployment.status}.');
+      if (deployment.finished) {
+        final app = await remote.get('application', application);
+        final status = app.status.toLowerCase();
+        if (status.contains('unhealthy') ||
+            status.startsWith('exited') ||
+            status.startsWith('stopped') ||
+            status.startsWith('dead')) {
+          throw TugException(
+            'Deployment $id finished, but the application is ${app.status}. '
+            'Deployment is not successful. Check Coolify health-check logs and ensure the committed Dockerfile includes wget.',
+          );
+        }
+        if (app.running &&
+            (status.contains(':healthy') || status.contains('(healthy)'))) {
+          terminal.success(
+            '$env: deployment finished; application is healthy.',
+          );
+          return;
+        }
+        terminal.detail(
+          '$env: deployment finished; waiting for health confirmation (${app.status}).',
+        );
+      } else {
+        terminal.detail('$env: deployment ${deployment.status}.');
       }
       await cancellation.race(_delay(const Duration(seconds: 5)));
     }
     throw TugException(
-      'Deployment $id is still pending after the polling limit. Use tug status; rerun apply to resume monitoring.',
+      'Deployment $id has not confirmed a healthy application within the polling limit. '
+      'Use tug status and Coolify health-check logs; no success has been reported.',
     );
-  }
+  });
 
   @override
   Future<void> status(

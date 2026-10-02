@@ -41,6 +41,7 @@ class RestCoolifyDatasource extends CoolifyDatasource {
   }
 
   String? _string(Object? value) => value == null ? null : '$value';
+  int? _int(Object? value) => int.tryParse('$value');
   bool? _bool(Object? value) => switch (value) {
     true || 1 || '1' => true,
     false || 0 || '0' => false,
@@ -93,6 +94,19 @@ class RestCoolifyDatasource extends CoolifyDatasource {
         v['is_preview_deployments_enabled'] ??
             settings['is_preview_deployments_enabled'],
       ),
+      healthCheckEnabled: _bool(v['health_check_enabled']),
+      healthCheckType: _string(v['health_check_type']),
+      healthCheckPath: _string(v['health_check_path']),
+      healthCheckPort: _string(v['health_check_port']),
+      healthCheckHost: _string(v['health_check_host']),
+      healthCheckMethod: _string(v['health_check_method']),
+      healthCheckScheme: _string(v['health_check_scheme']),
+      healthCheckReturnCode: _int(v['health_check_return_code']),
+      healthCheckResponseText: _string(v['health_check_response_text']),
+      healthCheckInterval: _int(v['health_check_interval']),
+      healthCheckTimeout: _int(v['health_check_timeout']),
+      healthCheckRetries: _int(v['health_check_retries']),
+      healthCheckStartPeriod: _int(v['health_check_start_period']),
     );
   }
 

@@ -291,6 +291,10 @@ void main() {
       '.coolify/local.yaml',
     ]);
     expect(ignored.exitCode, 0);
+    expect(generated, contains('busybox-static'));
+    expect(generated, contains('ln -s busybox /healthcheck/bin/sh'));
+    expect(generated, contains('ln -s busybox /healthcheck/bin/wget'));
+    expect(generated, contains('COPY --from=build /healthcheck/bin/ /bin/'));
     await invoke(['generate']);
     expect(await dockerfile.readAsString(), generated);
     expect(await File(config.global.path).readAsString(), globalBefore);

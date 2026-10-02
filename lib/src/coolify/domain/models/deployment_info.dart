@@ -4,7 +4,11 @@ import 'package:grumpy_cli/grumpy_cli.dart';
 class DeploymentInfo extends Model {
   const DeploymentInfo(this.uuid, this.status, this.logs);
   final String uuid, status, logs;
-  bool get finished => status == 'finished';
+  bool get finished => status == 'finished' && !failed;
   bool get failed =>
-      ['failed', 'cancelled-by-user', 'cancelled'].contains(status);
+      ['failed', 'cancelled-by-user', 'cancelled', 'error'].contains(status) ||
+      RegExp(
+        r'New container is (?:unhealthy|not healthy)|Rolling update failed|healthcheck failed',
+        caseSensitive: false,
+      ).hasMatch(logs);
 }

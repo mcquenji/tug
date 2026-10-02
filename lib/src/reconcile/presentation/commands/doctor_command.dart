@@ -15,7 +15,7 @@ class DoctorCommand extends DeploymentCommand {
       plan: true,
     );
     c.terminal.writeln(
-      'Checks passed. DNS and public HTTPS are verified after deployment; Tug never changes DNS.',
+      'Checks passed. Public DNS must point to Coolify; Tug never changes DNS.',
     );
   }
 }
