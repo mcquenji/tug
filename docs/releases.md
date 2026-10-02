@@ -33,17 +33,20 @@ Get-FileHash .\tug-v0.1.0-windows-x64.zip -Algorithm SHA256
 
 Every branch push and pull request runs analysis, tests, and a compiled-binary smoke check on all five targets. Only a stable `vMAJOR.MINOR.PATCH` tag publishes a release. The tag must match `version:` in its `pubspec.yaml`, and the release builds the exact tagged commit.
 
-For example, to release `0.1.1`:
-
-1. Change `pubspec.yaml` to `version: 0.1.1`.
-2. Run `fvm dart run tool/generate.dart` to update the embedded version.
-3. Commit the version and generated file as `chore(release): prepare 0.1.1`, then push and wait for CI.
-4. Tag that commit and push the tag:
+Use `commit-and-tag-version` from a clean checkout:
 
 ```sh
-git tag -a v0.1.1 -m 'Release 0.1.1'
-git push origin v0.1.1
+commit-and-tag-version
+# Or choose the next version explicitly:
+# commit-and-tag-version --release-as patch
+git push --follow-tags origin main
 ```
+
+`.versionrc` reads the current version from `pubspec.yaml` and bumps both that file and `lib/gen/version.g.dart`. The Dart file uses `tool/version_updater.cjs`, a custom updater, so the generated constant is included in the same release commit and tag as the changelog. No Dart generation command is needed for a version-only release.
+
+If you edit the pubspec version manually, run `fvm dart run tool/generate.dart` and commit the generated version before tagging. The version test and generated-file check deliberately fail when these two files disagree.
+
+The original `v0.2.0` tag predates this updater and contains a stale Dart version. Rerunning that tag will still fail; after pulling the fix, use `commit-and-tag-version --release-as patch` to publish a corrected `v0.2.1` tag without rewriting the old tag.
 
 The workflow tests and compiles on native macOS ARM64/x64, Linux ARM64/x64, and Windows x64 runners, verifies the executable's embedded version outside the checkout, and uploads all five archives plus `SHA256SUMS`. It publishes the GitHub release only after every platform succeeds. Finally, it commits the new download URLs and checksums to `mcquenji/homebrew-tap`. Users receive it through `brew upgrade`.
 
